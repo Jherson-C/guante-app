@@ -54,3 +54,19 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Modo práctica (sin guante)
+
+Mientras el guante no está soldado, la app se puede probar sin Bluetooth:
+
+1. `npx expo start`
+2. En la pantalla de conexión, tocar **“Probar sin guante · modo práctica”**.
+3. Usar las pestañas **Letras** (A–Z + Ñ), **Frases** (catálogo por categoría) y
+   **Guion** (conversaciones reproducidas letra por letra).
+
+El texto y la confianza son **simulados**; la pantalla lo indica. El detalle de
+esta etapa y el firmware de demo están en `../MODO_SIMULADO.md`.
+
+> La **conexión BLE** solo funciona en **Android** con el APK/development build
+> (`react-native-ble-plx` no existe en web ni en Expo Go). En web, usá el modo
+> práctica; para probar BLE desde la PC, usá `../prueba_edwin.html` en Chrome.
