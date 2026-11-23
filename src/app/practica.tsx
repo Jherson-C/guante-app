@@ -13,21 +13,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Cristal } from '@/components/cristal';
+import { Fondo } from '@/components/fondo';
+import { Icono } from '@/components/icono';
 import { SugerenciasFrases } from '@/components/sugerencias-frases';
-import {
-  ABECEDARIO,
-  LETRAS_MOVIMIENTO,
-  SIGNOS,
-} from '@/domain/abecedario';
+import { COLOR, FUENTE } from '@/constants/tema';
+import { ABECEDARIO, LETRAS_MOVIMIENTO, SIGNOS } from '@/domain/abecedario';
 import {
   CATEGORIAS,
   ETIQUETAS_CATEGORIA,
@@ -40,6 +34,12 @@ import {
 import { usePractica } from '@/hooks/use-practica';
 
 type Pestana = 'letras' | 'frases' | 'guion';
+
+const PESTANAS: readonly { valor: Pestana; etiqueta: string }[] = [
+  { valor: 'letras', etiqueta: 'Letras' },
+  { valor: 'frases', etiqueta: 'Frases' },
+  { valor: 'guion', etiqueta: 'Guion' },
+];
 
 interface TokenReproduccion {
   cancelado: boolean;
@@ -69,9 +69,10 @@ export default function Practica() {
   const [reproduciendoId, setReproduciendoId] = useState<string | null>(null);
   const tokenRef = useRef<TokenReproduccion | null>(null);
 
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const columnas = 6;
-  const anchoUtil = Math.max(240, Math.min(width - 40, 520));
+  const anchoUtil = Math.max(240, Math.min(width - 40 - insets.left - insets.right, 520));
   const anchoTecla = Math.min(
     56,
     Math.max(38, Math.floor((anchoUtil - 6 * (columnas - 1)) / columnas)),
@@ -146,322 +147,300 @@ export default function Practica() {
   }, [detener]);
 
   return (
-    <View style={styles.contenedor}>
-      <View style={styles.cabecera}>
-        <Pressable
-          onPress={salir}
-          accessibilityRole="button"
-          accessibilityLabel="Salir del modo práctica"
-          hitSlop={10}
-        >
-          <Text style={styles.volver}>← Salir</Text>
-        </Pressable>
-        <View style={styles.badgeModo}>
-          <Text style={styles.badgeModoTexto}>MODO PRÁCTICA</Text>
-        </View>
-        <View style={styles.badgeSimulado}>
-          <View style={styles.puntoSimulado} />
-          <Text style={styles.badgeSimuladoTexto}>SIMULADO</Text>
-        </View>
-      </View>
+    <View style={styles.raiz}>
+      <Fondo activo={texto ? 'guante' : null} />
 
-      <Text style={styles.subtitulo}>
-        Sin guante conectado · texto y confianza simulados
-      </Text>
-
-      <View style={styles.textoZona}>
-        <Text
-          style={styles.texto}
-          numberOfLines={3}
-          adjustsFontSizeToFit
-          minimumFontScale={0.35}
-          accessibilityLabel="Texto de práctica"
-        >
-          {texto || '…'}
-        </Text>
-      </View>
-
-      <View style={styles.estado}>
-        <Text style={styles.estadoTexto} numberOfLines={1}>
-          {ultimoEvento ?? 'Toca una letra o una frase para empezar'}
-        </Text>
-        {confianza !== null ? (
-          <Text style={styles.confianza}>{confianza}%</Text>
-        ) : null}
-      </View>
-
-      <SugerenciasFrases
-        sugerencias={sugerencias}
-        onElegir={(frase: Frase) => escribir(() => completar(frase))}
-      />
-
-      <View style={styles.tabs}>
-        {(['letras', 'frases', 'guion'] as const).map((valor) => (
+      <View
+        style={[
+          styles.marco,
+          {
+            paddingTop: Math.max(insets.top, 12),
+            paddingBottom: Math.max(insets.bottom, 14),
+            paddingLeft: Math.max(insets.left, 16),
+            paddingRight: Math.max(insets.right, 16),
+          },
+        ]}
+      >
+        <View style={styles.cabecera}>
           <Pressable
-            key={valor}
+            onPress={salir}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Salir del modo práctica"
+          >
+            <Cristal style={styles.redondo}>
+              <Icono nombre="atras" tamano={20} />
+            </Cristal>
+          </Pressable>
+          <Cristal style={styles.insignia}>
+            <View style={styles.puntoSimulado} />
+            <Text style={styles.insigniaTexto}>Práctica · simulado</Text>
+          </Cristal>
+        </View>
+
+        <Cristal fuerte tinte={COLOR.guanteBorde} style={styles.textoZona}>
+          <Text
+            style={styles.texto}
+            numberOfLines={3}
+            adjustsFontSizeToFit
+            minimumFontScale={0.35}
+            accessibilityLabel="Texto de práctica"
+          >
+            {texto || '…'}
+          </Text>
+        </Cristal>
+
+        <View style={styles.estado}>
+          <Text style={styles.estadoTexto} numberOfLines={1}>
+            {ultimoEvento ?? 'Toca una letra o una frase para empezar'}
+          </Text>
+          {confianza !== null ? <Text style={styles.confianza}>{confianza}%</Text> : null}
+        </View>
+
+        <SugerenciasFrases
+          sugerencias={sugerencias}
+          onElegir={(frase: Frase) => escribir(() => completar(frase))}
+        />
+
+        <View style={styles.tabs}>
+          {PESTANAS.map(({ valor, etiqueta }) => (
+            <Pressable
+              key={valor}
+              onPress={() => {
+                detener();
+                setPestana(valor);
+              }}
+              style={[styles.tab, pestana === valor && styles.tabActiva]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: pestana === valor }}
+              accessibilityLabel={`Ver ${etiqueta.toLowerCase()}`}
+            >
+              <Text style={[styles.tabTexto, pestana === valor && styles.tabTextoActivo]}>
+                {etiqueta}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.panel}>
+          {pestana === 'letras' ? (
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollLetras}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.leyenda}>Abecedario completo · 27 letras</Text>
+              <View style={styles.grilla}>
+                {ABECEDARIO.map(({ letra, tipo, nota }) => (
+                  <Pressable
+                    key={letra}
+                    onPress={() => escribir(() => pulsarLetra(letra))}
+                    style={({ pressed }) => [
+                      styles.tecla,
+                      { width: anchoTecla, height: anchoTecla },
+                      pressed && styles.teclaPulsada,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Letra ${letra}${
+                      tipo === 'movimiento' ? `, ${nota ?? 'requiere movimiento'}` : ''
+                    }`}
+                  >
+                    <Text style={styles.teclaTexto}>{letra}</Text>
+                    {tipo === 'movimiento' ? <View style={styles.puntoMovimiento} /> : null}
+                  </Pressable>
+                ))}
+              </View>
+
+              <View style={styles.filaSignos}>
+                <Text style={styles.etiquetaPequena}>Signos</Text>
+                {SIGNOS.map((signo) => (
+                  <Pressable
+                    key={signo}
+                    onPress={() => escribir(() => pulsarLetra(signo))}
+                    style={({ pressed }) => [styles.teclaSigno, pressed && styles.teclaPulsada]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Signo ${signo}`}
+                  >
+                    <Text style={styles.signoTexto}>{signo}</Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={styles.leyenda}>
+                El punto ámbar marca {LETRAS_MOVIMIENTO.join(', ')}: se trazan en el aire; el resto
+                son poses estáticas. Aquí puedes usarlas todas para armar frases.
+              </Text>
+            </ScrollView>
+          ) : null}
+
+          {pestana === 'frases' ? (
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollFrases}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.ayudaPanel}>
+                Toca una frase para enviarla como una seña ya aprendida, como si el guante la
+                mandara completa. También puedes deletrearla en la pestaña Letras.
+              </Text>
+
+              {grupos.map(({ categoria, frases }) => (
+                <View key={categoria} style={styles.grupo}>
+                  <Text style={styles.grupoTitulo}>{ETIQUETAS_CATEGORIA[categoria]}</Text>
+                  <View style={styles.chips}>
+                    {frases.map((frase) => (
+                      <Pressable
+                        key={frase.id}
+                        onPress={() => escribir(() => enviarFrase(frase))}
+                        style={({ pressed }) => [styles.chip, pressed && styles.chipPulsado]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Enviar frase ${frase.texto}`}
+                      >
+                        <Text style={styles.chipTexto}>{frase.texto}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          ) : null}
+
+          {pestana === 'guion' ? (
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollGuiones}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.ayudaPanel}>
+                Reproduce una conversación completa letra por letra. Es la misma secuencia que
+                podría generar el guante, pero sin hardware.
+              </Text>
+
+              {GUIONES.map((guion) => {
+                const activo = reproduciendoId === guion.id;
+                const frases = guion.frases
+                  .map((id) => frasePorId(id)?.texto)
+                  .filter((valor): valor is string => Boolean(valor));
+
+                return (
+                  <Cristal
+                    key={guion.id}
+                    tinte={activo ? COLOR.guanteBorde : undefined}
+                    style={styles.tarjetaGuion}
+                  >
+                    <View style={styles.guionCabecera}>
+                      <Text style={styles.guionTitulo}>{guion.titulo}</Text>
+                      <Pressable
+                        onPress={() => {
+                          if (activo) detener();
+                          else void reproducir(guion);
+                        }}
+                        style={[styles.botonGuion, activo && styles.botonGuionDetener]}
+                        accessibilityRole="button"
+                        accessibilityLabel={
+                          activo ? `Detener ${guion.titulo}` : `Reproducir ${guion.titulo}`
+                        }
+                      >
+                        <Text style={[styles.botonGuionTexto, activo && { color: COLOR.coral }]}>
+                          {activo ? 'Detener' : 'Reproducir'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                    <Text style={styles.guionDescripcion}>{guion.descripcion}</Text>
+                    <Text style={styles.guionFrases}>{frases.join(' · ')}</Text>
+                  </Cristal>
+                );
+              })}
+            </ScrollView>
+          ) : null}
+        </View>
+
+        <View style={styles.pie}>
+          {[
+            { etiqueta: 'Espacio', descripcion: 'Agregar un espacio', accion: pulsarEspacio },
+            { etiqueta: 'Borrar', descripcion: 'Borrar el último carácter', accion: pulsarBorrar },
+          ].map(({ etiqueta, descripcion, accion }) => (
+            <Pressable
+              key={etiqueta}
+              onPress={() => escribir(accion)}
+              style={({ pressed }) => [styles.botonPie, pressed && styles.botonPiePulsado]}
+              accessibilityRole="button"
+              accessibilityLabel={descripcion}
+            >
+              <Text style={styles.botonPieTexto}>{etiqueta}</Text>
+            </Pressable>
+          ))}
+          <Pressable
             onPress={() => {
               detener();
-              setPestana(valor);
+              limpiar();
             }}
-            style={[styles.tab, pestana === valor && styles.tabActiva]}
+            style={({ pressed }) => [styles.botonPie, pressed && styles.botonPiePulsado]}
             accessibilityRole="button"
-            accessibilityLabel={`Ver ${valor}`}
+            accessibilityLabel="Limpiar todo el texto"
           >
-            <Text
-              style={[styles.tabTexto, pestana === valor && styles.tabTextoActivo]}
-            >
-              {valor === 'letras' ? 'Letras' : valor === 'frases' ? 'Frases' : 'Guion'}
-            </Text>
+            <Text style={styles.botonPieTexto}>Limpiar</Text>
           </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.panel}>
-        {pestana === 'letras' ? (
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollLetras}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.leyenda}>Abecedario completo · 27 letras</Text>
-            <View style={styles.grilla}>
-              {ABECEDARIO.map(({ letra, tipo, nota }) => (
-                <Pressable
-                  key={letra}
-                  onPress={() => escribir(() => pulsarLetra(letra))}
-                  style={({ pressed }) => [
-                    styles.tecla,
-                    { width: anchoTecla, height: anchoTecla },
-                    pressed && styles.teclaPulsada,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Letra ${letra}${
-                    tipo === 'movimiento' ? `, ${nota ?? 'requiere movimiento'}` : ''
-                  }`}
-                >
-                  <Text style={styles.teclaTexto}>{letra}</Text>
-                  {tipo === 'movimiento' ? (
-                    <View style={styles.puntoMovimiento} />
-                  ) : null}
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.filaSignos}>
-              <Text style={styles.etiquetaPequena}>Signos</Text>
-              {SIGNOS.map((signo) => (
-                <Pressable
-                  key={signo}
-                  onPress={() => escribir(() => pulsarLetra(signo))}
-                  style={({ pressed }) => [
-                    styles.teclaSigno,
-                    pressed && styles.teclaPulsada,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Signo ${signo}`}
-                >
-                  <Text style={styles.signoTexto}>{signo}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Text style={styles.leyenda}>
-              ● {LETRAS_MOVIMIENTO.join(', ')} se trazan en el aire; el resto son
-              poses estáticas. El modo práctica permite todas para armar frases.
-            </Text>
-          </ScrollView>
-        ) : null}
-
-        {pestana === 'frases' ? (
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollFrases}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.ayudaPanel}>
-              Toca una frase para enviarla como una seña ya aprendida (como si el
-              guante la mandara completa). También puedes deletrearla en la
-              pestaña Letras.
-            </Text>
-
-            {grupos.map(({ categoria, frases }) => (
-              <View key={categoria} style={styles.grupo}>
-                <Text style={styles.grupoTitulo}>
-                  {ETIQUETAS_CATEGORIA[categoria]}
-                </Text>
-                <View style={styles.chips}>
-                  {frases.map((frase) => (
-                    <Pressable
-                      key={frase.id}
-                      onPress={() => escribir(() => enviarFrase(frase))}
-                      style={({ pressed }) => [
-                        styles.chip,
-                        pressed && styles.chipPulsado,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Enviar frase ${frase.texto}`}
-                    >
-                      <Text style={styles.chipTexto}>{frase.texto}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        ) : null}
-
-        {pestana === 'guion' ? (
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollGuiones}
-            showsVerticalScrollIndicator={false}
-          >
-            <Text style={styles.ayudaPanel}>
-              Reproduce una conversación completa letra por letra. Es la misma
-              secuencia que podría generar el guante, pero sin hardware.
-            </Text>
-
-            {GUIONES.map((guion) => {
-              const activo = reproduciendoId === guion.id;
-              const frases = guion.frases
-                .map((id) => frasePorId(id)?.texto)
-                .filter((valor): valor is string => Boolean(valor));
-
-              return (
-                <View key={guion.id} style={styles.tarjetaGuion}>
-                  <View style={styles.guionCabecera}>
-                    <Text style={styles.guionTitulo}>{guion.titulo}</Text>
-                    <Pressable
-                      onPress={() => {
-                        if (activo) detener();
-                        else void reproducir(guion);
-                      }}
-                      style={[
-                        styles.botonGuion,
-                        activo && styles.botonGuionDetener,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        activo
-                          ? `Detener ${guion.titulo}`
-                          : `Reproducir ${guion.titulo}`
-                      }
-                    >
-                      <Text style={styles.botonGuionTexto}>
-                        {activo ? '■ Detener' : '▶ Reproducir'}
-                      </Text>
-                    </Pressable>
-                  </View>
-                  <Text style={styles.guionDescripcion}>{guion.descripcion}</Text>
-                  <Text style={styles.guionFrases}>{frases.join(' · ')}</Text>
-                </View>
-              );
-            })}
-          </ScrollView>
-        ) : null}
-      </View>
-
-      <View style={styles.pie}>
-        <Pressable
-          onPress={() => escribir(pulsarEspacio)}
-          style={({ pressed }) => [styles.botonPie, pressed && styles.botonPiePulsado]}
-          accessibilityRole="button"
-          accessibilityLabel="Agregar un espacio"
-        >
-          <Text style={styles.botonPieTexto}>ESPACIO</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => escribir(pulsarBorrar)}
-          style={({ pressed }) => [styles.botonPie, pressed && styles.botonPiePulsado]}
-          accessibilityRole="button"
-          accessibilityLabel="Borrar el último carácter"
-        >
-          <Text style={styles.botonPieTexto}>⌫ BORRAR</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            detener();
-            limpiar();
-          }}
-          style={({ pressed }) => [styles.botonPie, pressed && styles.botonPiePulsado]}
-          accessibilityRole="button"
-          accessibilityLabel="Limpiar todo el texto"
-        >
-          <Text style={styles.botonPieTexto}>LIMPIAR</Text>
-        </Pressable>
+        </View>
       </View>
     </View>
   );
 }
 
-const VERDE = '#4caf7d';
-const AMBAR = '#e0b34e';
-
 const styles = StyleSheet.create({
-  contenedor: {
+  raiz: {
     flex: 1,
-    backgroundColor: '#000',
-    paddingTop: 52,
-    paddingHorizontal: 20,
-    paddingBottom: 18,
+    backgroundColor: COLOR.abismo,
+  },
+  marco: {
+    flex: 1,
     gap: 10,
   },
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 8,
   },
-  volver: {
-    color: '#cfcfcf',
-    fontSize: 15,
+  redondo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  badgeModo: {
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#3b3b3b',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  badgeModoTexto: {
-    color: '#e6e6e6',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  badgeSimulado: {
+  insignia: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 8,
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 22,
   },
   puntoSimulado: {
-    width: 7,
-    height: 7,
+    width: 8,
+    height: 8,
     borderRadius: 4,
-    backgroundColor: VERDE,
+    backgroundColor: COLOR.verde,
   },
-  badgeSimuladoTexto: {
-    color: VERDE,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  subtitulo: {
-    color: '#6f6f6f',
-    fontSize: 11,
-    marginTop: -4,
+  insigniaTexto: {
+    fontFamily: FUENTE.negrita,
+    fontSize: 13,
+    color: COLOR.texto,
   },
   textoZona: {
-    minHeight: 88,
+    minHeight: 96,
     maxHeight: 170,
     justifyContent: 'center',
-    paddingVertical: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 26,
   },
   texto: {
-    color: '#ffffff',
+    fontFamily: FUENTE.display,
+    color: COLOR.texto,
     fontSize: 48,
-    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: -0.8,
     flexShrink: 1,
   },
   estado: {
@@ -472,14 +451,15 @@ const styles = StyleSheet.create({
     minHeight: 18,
   },
   estadoTexto: {
-    color: '#8a8a8a',
+    fontFamily: FUENTE.normal,
     fontSize: 12,
+    color: COLOR.suave,
     flex: 1,
   },
   confianza: {
-    color: VERDE,
+    fontFamily: FUENTE.negrita,
     fontSize: 12,
-    fontWeight: '600',
+    color: COLOR.guante,
   },
   tabs: {
     flexDirection: 'row',
@@ -487,23 +467,24 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    borderRadius: 8,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#333333',
-    paddingVertical: 8,
+    borderColor: COLOR.borde,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    paddingVertical: 10,
     alignItems: 'center',
   },
   tabActiva: {
-    backgroundColor: '#ffffff',
-    borderColor: '#ffffff',
+    backgroundColor: COLOR.guanteSuave,
+    borderColor: COLOR.guanteBorde,
   },
   tabTexto: {
-    color: '#bdbdbd',
+    fontFamily: FUENTE.negrita,
     fontSize: 14,
-    fontWeight: '600',
+    color: COLOR.suave,
   },
   tabTextoActivo: {
-    color: '#000000',
+    color: COLOR.guante,
   },
   panel: {
     flex: 1,
@@ -514,7 +495,7 @@ const styles = StyleSheet.create({
   },
   scrollLetras: {
     paddingBottom: 10,
-    gap: 10,
+    gap: 12,
   },
   grilla: {
     flexDirection: 'row',
@@ -523,30 +504,30 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tecla: {
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#333333',
-    backgroundColor: '#141414',
+    borderColor: COLOR.borde,
+    backgroundColor: COLOR.capa,
     alignItems: 'center',
     justifyContent: 'center',
   },
   teclaPulsada: {
-    backgroundColor: '#2b2b2b',
-    borderColor: '#5a5a5a',
+    backgroundColor: COLOR.guanteSuave,
+    borderColor: COLOR.guanteBorde,
   },
   teclaTexto: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '700',
+    fontFamily: FUENTE.display,
+    color: COLOR.texto,
+    fontSize: 21,
   },
   puntoMovimiento: {
     position: 'absolute',
-    top: 5,
-    right: 5,
-    width: 5,
-    height: 5,
+    top: 6,
+    right: 6,
+    width: 6,
+    height: 6,
     borderRadius: 3,
-    backgroundColor: AMBAR,
+    backgroundColor: COLOR.voz,
   },
   filaSignos: {
     flexDirection: 'row',
@@ -556,50 +537,51 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   etiquetaPequena: {
-    color: '#6f6f6f',
-    fontSize: 11,
+    fontFamily: FUENTE.normal,
+    fontSize: 12,
+    color: COLOR.tenue,
     marginRight: 2,
   },
   teclaSigno: {
-    width: 36,
-    height: 34,
-    borderRadius: 8,
+    width: 38,
+    height: 36,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#333333',
-    backgroundColor: '#141414',
+    borderColor: COLOR.borde,
+    backgroundColor: COLOR.capa,
     alignItems: 'center',
     justifyContent: 'center',
   },
   signoTexto: {
-    color: '#dedede',
+    fontFamily: FUENTE.negrita,
+    color: COLOR.texto,
     fontSize: 17,
-    fontWeight: '600',
   },
   leyenda: {
-    color: '#6f6f6f',
-    fontSize: 11,
-    lineHeight: 16,
+    fontFamily: FUENTE.normal,
+    color: COLOR.tenue,
+    fontSize: 12,
+    lineHeight: 17,
     textAlign: 'center',
     paddingHorizontal: 6,
   },
   scrollFrases: {
     paddingBottom: 14,
-    gap: 14,
+    gap: 16,
   },
   ayudaPanel: {
-    color: '#7a7a7a',
-    fontSize: 12,
-    lineHeight: 17,
+    fontFamily: FUENTE.normal,
+    color: COLOR.suave,
+    fontSize: 13,
+    lineHeight: 19,
   },
   grupo: {
-    gap: 7,
+    gap: 8,
   },
   grupoTitulo: {
-    color: '#8f8f8f',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    fontFamily: FUENTE.negrita,
+    color: COLOR.suave,
+    fontSize: 13,
   },
   chips: {
     flexDirection: 'row',
@@ -609,30 +591,28 @@ const styles = StyleSheet.create({
   chip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#3b3b3b',
-    backgroundColor: '#161616',
-    paddingVertical: 8,
-    paddingHorizontal: 13,
+    borderColor: COLOR.borde,
+    backgroundColor: COLOR.capa,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
   },
   chipPulsado: {
-    backgroundColor: '#2b2b2b',
+    backgroundColor: COLOR.guanteSuave,
+    borderColor: COLOR.guanteBorde,
   },
   chipTexto: {
-    color: '#f0f0f0',
+    fontFamily: FUENTE.negrita,
+    color: COLOR.texto,
     fontSize: 14,
-    fontWeight: '600',
   },
   scrollGuiones: {
     paddingBottom: 14,
     gap: 12,
   },
   tarjetaGuion: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#333333',
-    backgroundColor: '#111111',
-    padding: 14,
+    padding: 16,
     gap: 6,
+    borderRadius: 20,
   },
   guionCabecera: {
     flexDirection: 'row',
@@ -641,32 +621,38 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   guionTitulo: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: '700',
+    fontFamily: FUENTE.display,
+    color: COLOR.texto,
+    fontSize: 19,
+    letterSpacing: -0.3,
   },
   botonGuion: {
-    borderRadius: 8,
-    backgroundColor: VERDE,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: COLOR.guanteSuave,
+    borderWidth: 1,
+    borderColor: COLOR.guanteBorde,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
   },
   botonGuionDetener: {
-    backgroundColor: '#7a3833',
+    backgroundColor: COLOR.coralSuave,
+    borderColor: 'rgba(255,93,93,0.4)',
   },
   botonGuionTexto: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  guionDescripcion: {
-    color: '#b3b3b3',
+    fontFamily: FUENTE.negrita,
+    color: COLOR.guante,
     fontSize: 13,
   },
+  guionDescripcion: {
+    fontFamily: FUENTE.normal,
+    color: COLOR.suave,
+    fontSize: 14,
+  },
   guionFrases: {
-    color: '#6f6f6f',
-    fontSize: 11,
-    lineHeight: 16,
+    fontFamily: FUENTE.normal,
+    color: COLOR.tenue,
+    fontSize: 12,
+    lineHeight: 17,
   },
   pie: {
     flexDirection: 'row',
@@ -674,18 +660,19 @@ const styles = StyleSheet.create({
   },
   botonPie: {
     flex: 1,
-    borderRadius: 10,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#3b3b3b',
-    paddingVertical: 12,
+    borderColor: COLOR.borde,
+    backgroundColor: COLOR.capa,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   botonPiePulsado: {
-    backgroundColor: '#242424',
+    backgroundColor: COLOR.guanteSuave,
   },
   botonPieTexto: {
-    color: '#e0e0e0',
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: FUENTE.negrita,
+    color: COLOR.texto,
+    fontSize: 14,
   },
 });

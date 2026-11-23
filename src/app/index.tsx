@@ -1,219 +1,533 @@
 /**
- * Pantalla de conexión — flujo definido en SPEC §6: estados legibles,
- * acción de reintento y navegación a la transcripción solo al estar operativo.
+ * Pantalla de conexión. Un único camino claro: conectar el guante y entrar a la
+ * conversación. La órbita de la izquierda (o de arriba, en vertical) respira
+ * mientras busca el guante y se queda quieta cuando está listo.
  */
 
+import { useEffect } from 'react';
 import { router } from 'expo-router';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import Animated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AnimadoPressable, useRebote } from '@/components/controles';
+import { Cristal } from '@/components/cristal';
+import { Fondo } from '@/components/fondo';
+import { Icono } from '@/components/icono';
+import { NOMBRES_DISPOSITIVO } from '@/ble/protocol';
+import type { IdDispositivo } from '@/ble/protocol';
+import { COLORES_FASE, ETIQUETAS_CORTAS, ETIQUETAS_FASE } from '@/constants/guante-fases';
+import { COLOR, FUENTE } from '@/constants/tema';
 import { useGuante } from '@/hooks/use-guante';
-import { COLORES_FASE, ETIQUETAS_FASE } from '@/constants/guante-fases';
+
+function Orbita({ tamano, buscando, listo }: { tamano: number; buscando: boolean; listo: boolean }) {
+  const reducir = useReducedMotion();
+  const latido = useSharedValue(0);
+  const giro = useSharedValue(0);
+
+  useEffect(() => {
+    if (reducir) return;
+    giro.value = withRepeat(withTiming(360, { duration: 40000, easing: Easing.linear }), -1);
+    return () => cancelAnimation(giro);
+  }, [reducir, giro]);
+
+  useEffect(() => {
+    if (buscando && !reducir) {
+      latido.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.quad) }),
+          withTiming(0, { duration: 1100, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+      );
+    } else {
+      cancelAnimation(latido);
+      latido.value = withTiming(0, { duration: 300 });
+    }
+    return () => cancelAnimation(latido);
+  }, [buscando, reducir, latido]);
+
+  const anilloExterior = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + latido.value * 0.04 }],
+    opacity: 0.55 + latido.value * 0.45,
+  }));
+  const anilloMedio = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 + latido.value * 0.07 }],
+    opacity: 0.7 + latido.value * 0.3,
+  }));
+  const anilloGiratorio = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${giro.value}deg` }],
+  }));
+
+  const color = listo ? COLOR.verde : COLOR.guante;
+  const nucleo = Math.round(tamano * 0.34);
+
+  return (
+    <View style={{ width: tamano, height: tamano }} accessible={false}>
+      <Animated.View
+        style={[
+          styles.anillo,
+          { borderColor: `${color}33`, borderRadius: tamano / 2 },
+          anilloExterior,
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.anillo,
+          {
+            margin: tamano * 0.12,
+            borderColor: `${color}55`,
+            borderRadius: tamano / 2,
+          },
+          anilloMedio,
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.anillo,
+          {
+            margin: tamano * 0.24,
+            borderColor: `${color}66`,
+            borderStyle: 'dashed',
+            borderRadius: tamano / 2,
+          },
+          anilloGiratorio,
+        ]}
+      />
+      <View style={styles.centro}>
+        <Cristal
+          fuerte
+          tinte={`${color}66`}
+          style={[styles.nucleo, { width: nucleo, height: nucleo, borderRadius: nucleo * 0.3 }]}
+        >
+          <Icono nombre="mano" tamano={Math.round(nucleo * 0.5)} color={color} grosor={1.8} />
+        </Cristal>
+      </View>
+    </View>
+  );
+}
+
+function BotonPrimario({
+  etiqueta,
+  alPresionar,
+  deshabilitado,
+  descripcion,
+}: {
+  etiqueta: string;
+  alPresionar: () => void;
+  deshabilitado?: boolean;
+  descripcion: string;
+}) {
+  const rebote = useRebote();
+  return (
+    <AnimadoPressable
+      onPress={alPresionar}
+      onPressIn={rebote.alPresionar}
+      onPressOut={rebote.alSoltar}
+      disabled={deshabilitado}
+      accessibilityRole="button"
+      accessibilityLabel={descripcion}
+      accessibilityState={{ disabled: deshabilitado }}
+      style={[styles.primario, deshabilitado && styles.primarioApagado, rebote.estilo]}
+    >
+      <Text style={styles.primarioTexto}>{etiqueta}</Text>
+    </AnimadoPressable>
+  );
+}
+
+const OCUPADO = ['verificando', 'escaneando', 'conectando', 'conectado', 'reconectando'];
+
+/** Estado y acción de cada uno de los 3 dispositivos (2 guantes + base). */
+function ListaDispositivos() {
+  const { dispositivos, conectarDispositivo, desconectarDispositivo, enviarBase } = useGuante();
+  return (
+    <View style={styles.dispositivos}>
+      {(Object.keys(dispositivos) as IdDispositivo[]).map((id) => {
+        const { fase } = dispositivos[id];
+        const nombre = NOMBRES_DISPOSITIVO[id];
+        const enUso = fase === 'operativo' || OCUPADO.includes(fase);
+        const estadoTexto = fase === 'operativo' ? 'Listo' : ETIQUETAS_CORTAS[fase];
+        return (
+          <Cristal key={id} style={styles.dispositivo}>
+            <View
+              style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]}
+              accessible
+              accessibilityLabel={`${nombre}: ${estadoTexto}`}
+            />
+            <Text style={styles.dispositivoNombre}>{nombre}</Text>
+            <Text style={styles.dispositivoEstado}>{estadoTexto}</Text>
+            <Pressable
+              onPress={() => (enUso ? desconectarDispositivo(id) : conectarDispositivo(id))}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`${enUso ? 'Desconectar' : 'Conectar'} ${nombre.toLowerCase()}`}
+            >
+              <Text style={[styles.secundarioTexto, enUso && { color: COLOR.coral }]}>
+                {enUso ? 'Desconectar' : 'Conectar'}
+              </Text>
+            </Pressable>
+          </Cristal>
+        );
+      })}
+      {dispositivos.base.fase === 'operativo' ? (
+        // Prueba manual de la base: G:<grados> (protocolo en src/ble/protocol.ts).
+        <View style={styles.secundarias}>
+          {([['Izquierda', 0], ['Centro', 90], ['Derecha', 180]] as const).map(([etiqueta, grados]) => (
+            <Pressable
+              key={grados}
+              onPress={() => enviarBase(`G:${grados}`).catch(() => {})}
+              style={styles.secundario}
+              accessibilityRole="button"
+              accessibilityLabel={`Girar la base a ${grados} grados`}
+            >
+              <Text style={styles.secundarioTexto}>{etiqueta}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 export default function Conexion() {
   const { fase, detalle, activo, simulado, conectar, desconectar } = useGuante();
-  const soloAndroid = Platform.OS !== 'android';
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const horizontal = width > height;
+  const esAndroid = Platform.OS === 'android';
 
-  const ocupado =
+  const buscando =
     fase === 'verificando' ||
     fase === 'escaneando' ||
     fase === 'conectando' ||
+    fase === 'conectado' ||
     fase === 'reconectando';
 
+  const tamanoOrbita = horizontal
+    ? Math.round(Math.min(height * 0.7, width * 0.36))
+    : Math.round(Math.min(width * 0.7, 300));
+
+  const etiquetaConectar =
+    fase === 'inicial' || fase === 'desconectado' || fase === 'no-encontrado'
+      ? 'Conectar dispositivos'
+      : 'Reintentar';
+
   return (
-    <View style={styles.contenedor}>
-      <Text style={styles.titulo}>Guante Traductor</Text>
+    <View style={styles.raiz}>
+      <Fondo activo={activo ? 'guante' : null} />
 
-      <View style={styles.estado}>
-        <View
-          style={[styles.indicador, { backgroundColor: COLORES_FASE[fase] }]}
-          accessible
-          accessibilityLabel={`Estado de conexión: ${ETIQUETAS_FASE[fase]}`}
-        />
-        <Text style={[styles.faseTexto, { color: COLORES_FASE[fase] }]}>
-          {ETIQUETAS_FASE[fase]}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: Math.max(insets.top, 16),
+            paddingBottom: Math.max(insets.bottom, 16),
+            paddingLeft: Math.max(insets.left, 24),
+            paddingRight: Math.max(insets.right, 24),
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.contenido, horizontal && styles.contenidoHorizontal]}>
+          <View style={styles.orbitaZona}>
+            <Orbita tamano={tamanoOrbita} buscando={buscando} listo={activo} />
+            <Cristal style={styles.estado}>
+              <View
+                style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]}
+                accessible
+                accessibilityLabel={`Estado de conexión: ${ETIQUETAS_FASE[fase]}`}
+              />
+              <Text style={styles.estadoTexto}>{ETIQUETAS_FASE[fase]}</Text>
+            </Cristal>
+          </View>
+
+          <View style={[styles.texto, horizontal && styles.textoHorizontal]}>
+            <Text style={[styles.titulo, { fontSize: horizontal ? 46 : 38 }]}>
+              {activo ? 'Guante listo' : 'Conecta tus guantes'}
+            </Text>
+            <Text style={styles.bajada}>
+              {activo
+                ? 'Ya puedes conversar: lo que firmes y lo que diga la otra persona aparecerán juntos en una sola pantalla.'
+                : 'Enciende los guantes y la base giratoria y mantenlos a menos de un metro del teléfono.'}
+            </Text>
+            {!activo && esAndroid ? (
+              <Text style={styles.ayuda}>
+                Sentirás una vibración cuando se conecte y con cada letra.
+              </Text>
+            ) : null}
+            {detalle ? <Text style={styles.detalle}>{detalle}</Text> : null}
+            {simulado ? (
+              <Text style={styles.simulado}>Firmware de demostración: datos simulados</Text>
+            ) : null}
+            {esAndroid ? <ListaDispositivos /> : null}
+
+            <View style={styles.acciones}>
+              {!esAndroid ? (
+                <BotonPrimario
+                  etiqueta="Abrir modo práctica"
+                  descripcion="Abrir el modo práctica"
+                  alPresionar={() => router.push('/practica')}
+                />
+              ) : activo ? (
+                <BotonPrimario
+                  etiqueta="Iniciar conversación"
+                  descripcion="Abrir la conversación de dos vías"
+                  alPresionar={() => router.push('/conversacion')}
+                />
+              ) : (
+                <BotonPrimario
+                  etiqueta={etiquetaConectar}
+                  descripcion="Conectar los guantes y la base por Bluetooth"
+                  deshabilitado={buscando}
+                  alPresionar={conectar}
+                />
+              )}
+
+              <View style={styles.secundarias}>
+                {!esAndroid ? (
+                  <Pressable
+                    onPress={() => router.push('/conversacion')}
+                    style={styles.secundario}
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver la pantalla de conversación con datos de demostración"
+                  >
+                    <Text style={styles.secundarioTexto}>Ver conversación (demo)</Text>
+                  </Pressable>
+                ) : null}
+                {esAndroid && !activo ? (
+                  <Pressable
+                    onPress={() => router.push('/conversacion')}
+                    style={styles.secundario}
+                    accessibilityRole="button"
+                    accessibilityLabel="Conversar usando solo la voz, sin guante"
+                  >
+                    <Text style={styles.secundarioTexto}>Solo voz</Text>
+                  </Pressable>
+                ) : null}
+                {esAndroid ? (
+                  <Pressable
+                    onPress={() => router.push('/practica')}
+                    style={styles.secundario}
+                    accessibilityRole="button"
+                    accessibilityLabel="Probar la app sin guante en modo práctica"
+                  >
+                    <Text style={styles.secundarioTexto}>Modo práctica</Text>
+                  </Pressable>
+                ) : null}
+                {esAndroid && fase !== 'inicial' && fase !== 'ble-no-disponible' ? (
+                  <Pressable
+                    onPress={desconectar}
+                    style={styles.secundario}
+                    accessibilityRole="button"
+                    accessibilityLabel="Desconectar todos los dispositivos"
+                  >
+                    <Text style={[styles.secundarioTexto, { color: COLOR.coral }]}>
+                      Desconectar todo
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+
+            {!esAndroid ? (
+              <Text style={styles.ayuda}>
+                En el navegador no hay Bluetooth. Para conectar el guante usa el APK en Android; el
+                modo práctica funciona sin guante.
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        <Text style={styles.privacidad}>
+          El texto vive solo en la memoria del teléfono y se pierde al cerrar la app. La app no
+          guarda audio ni texto; el reconocimiento de voz lo procesa Android.
         </Text>
-      </View>
-      {detalle ? <Text style={styles.detalle}>{detalle}</Text> : null}
-      {simulado ? (
-        <Text style={styles.avisoSimulado}>
-          Firmware de demostración · datos simulados
-        </Text>
-      ) : null}
-
-      {soloAndroid ? (
-        <Pressable
-          style={styles.botonPrimario}
-          onPress={() => router.push('/practica')}
-          accessibilityRole="button"
-          accessibilityLabel="Abrir el modo práctica"
-        >
-          <Text style={styles.botonPrimarioTexto}>Abrir modo práctica</Text>
-        </Pressable>
-      ) : activo ? (
-        <Pressable
-          style={styles.botonPrimario}
-          onPress={() => router.push('/conversacion')}
-          accessibilityRole="button"
-          accessibilityLabel="Abrir el modo conversación de dos vías"
-        >
-          <Text style={styles.botonPrimarioTexto}>Abrir conversación</Text>
-        </Pressable>
-      ) : (
-        <Pressable
-          style={[styles.botonPrimario, ocupado && styles.botonDeshabilitado]}
-          onPress={conectar}
-          disabled={ocupado}
-          accessibilityRole="button"
-          accessibilityLabel="Conectar el guante por Bluetooth"
-        >
-          <Text style={styles.botonPrimarioTexto}>
-            {fase === 'inicial' || fase === 'desconectado' || fase === 'no-encontrado'
-              ? 'Conectar guante'
-              : 'Reintentar'}
-          </Text>
-        </Pressable>
-      )}
-
-      {!soloAndroid && activo ? (
-        <Pressable
-          style={styles.botonSecundario}
-          onPress={() => router.push('/session')}
-          accessibilityRole="button"
-          accessibilityLabel="Abrir la transcripción con sugerencias"
-        >
-          <Text style={styles.botonSecundarioTexto}>Abrir transcripción</Text>
-        </Pressable>
-      ) : null}
-
-      {!soloAndroid && !activo ? (
-        <Pressable
-          style={styles.botonSecundario}
-          onPress={() => router.push('/practica')}
-          accessibilityRole="button"
-          accessibilityLabel="Probar la app sin guante en modo práctica"
-        >
-          <Text style={styles.botonSecundarioTexto}>
-            Probar sin guante · modo práctica
-          </Text>
-        </Pressable>
-      ) : null}
-
-      {soloAndroid ? (
-        <Text style={styles.avisoWeb}>
-          En el navegador no hay BLE. Para conectar el guante usá el APK en Android
-          o abrí prueba_edwin.html en Chrome. El modo práctica funciona sin
-          guante.
-        </Text>
-      ) : (
-        <Text style={styles.ayuda}>
-          Enciende el guante y colócalo a menos de un metro del teléfono.
-          {'\n'}Recibe en vibración cuando la conexión se establece y con cada letra.
-        </Text>
-      )}
-
-      {!soloAndroid && fase !== 'inicial' && fase !== 'ble-no-disponible' ? (
-        <Pressable
-          style={styles.botonSecundario}
-          onPress={desconectar}
-          accessibilityRole="button"
-          accessibilityLabel="Desconectar el guante"
-        >
-          <Text style={styles.botonSecundarioTexto}>Desconectar</Text>
-        </Pressable>
-      ) : null}
-
-      <Text style={styles.privacidad}>
-        El texto transcrito vive solo en la memoria del teléfono: no se guarda en
-        ningún archivo, base de datos o servidor, y se pierde al cerrar la app.
-      </Text>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  contenedor: {
+  raiz: {
     flex: 1,
-    backgroundColor: '#000',
-    alignItems: 'center',
+    backgroundColor: COLOR.abismo,
+  },
+  scroll: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 32,
     gap: 18,
   },
-  titulo: {
-    fontSize: 34,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 8,
+  contenido: {
+    alignItems: 'center',
+    gap: 28,
+  },
+  contenidoHorizontal: {
+    flexDirection: 'row',
+    gap: 48,
+  },
+  orbitaZona: {
+    alignItems: 'center',
+    gap: 14,
+    flexShrink: 0,
+  },
+  anillo: {
+    ...StyleSheet.absoluteFill,
+    borderWidth: 1.5,
+  },
+  centro: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nucleo: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   estado: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    borderRadius: 999,
   },
-  indicador: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  punto: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  faseTexto: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  detalle: {
+  estadoTexto: {
+    fontFamily: FUENTE.normal,
     fontSize: 13,
-    color: '#9a9a9a',
-    textAlign: 'center',
+    color: COLOR.texto,
   },
-  avisoSimulado: {
-    fontSize: 12,
-    color: '#e0b34e',
-    textAlign: 'center',
-    marginTop: -6,
+  texto: {
+    gap: 12,
+    alignItems: 'center',
+    maxWidth: 520,
   },
-  botonPrimario: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 48,
-    marginTop: 12,
+  textoHorizontal: {
+    flex: 1,
+    alignItems: 'flex-start',
   },
-  botonPrimarioTexto: {
-    color: '#000000',
-    fontSize: 22,
-    fontWeight: '700',
+  titulo: {
+    fontFamily: FUENTE.display,
+    color: COLOR.texto,
+    letterSpacing: -1.2,
   },
-  botonDeshabilitado: {
-    opacity: 0.4,
+  bajada: {
+    fontFamily: FUENTE.normal,
+    fontSize: 17,
+    lineHeight: 26,
+    color: COLOR.texto,
   },
   ayuda: {
-    fontSize: 15,
-    color: '#bdbdbd',
-    textAlign: 'center',
-    lineHeight: 22,
+    fontFamily: FUENTE.normal,
+    fontSize: 14,
+    lineHeight: 21,
+    color: COLOR.suave,
   },
-  avisoWeb: {
+  detalle: {
+    fontFamily: FUENTE.normal,
     fontSize: 13,
-    color: '#bdbdbd',
-    textAlign: 'center',
     lineHeight: 19,
-    paddingHorizontal: 4,
+    color: COLOR.voz,
   },
-  botonSecundario: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#5a5a5a',
+  simulado: {
+    fontFamily: FUENTE.negrita,
+    fontSize: 12,
+    color: COLOR.voz,
+  },
+  acciones: {
+    alignSelf: 'stretch',
+    gap: 10,
+    marginTop: 10,
+  },
+  primario: {
+    backgroundColor: COLOR.guante,
+    borderRadius: 18,
+    paddingVertical: 19,
+    alignItems: 'center',
+    shadowColor: COLOR.guante,
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10,
+  },
+  primarioApagado: {
+    opacity: 0.45,
+  },
+  primarioTexto: {
+    fontFamily: FUENTE.display,
+    fontSize: 19,
+    color: '#04222A',
+    letterSpacing: -0.2,
+  },
+  dispositivos: {
+    alignSelf: 'stretch',
+    gap: 8,
+  },
+  dispositivo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  dispositivoNombre: {
+    flex: 1,
+    fontFamily: FUENTE.negrita,
+    fontSize: 15,
+    color: COLOR.texto,
+  },
+  dispositivoEstado: {
+    fontFamily: FUENTE.normal,
+    fontSize: 13,
+    color: COLOR.suave,
+  },
+  secundarias: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  secundario: {
     paddingVertical: 10,
-    paddingHorizontal: 28,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLOR.borde,
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  botonSecundarioTexto: {
-    color: '#dddddd',
-    fontSize: 16,
+  secundarioTexto: {
+    fontFamily: FUENTE.negrita,
+    fontSize: 14,
+    color: COLOR.suave,
   },
   privacidad: {
-    fontSize: 12,
-    color: '#7a7a7a',
+    fontFamily: FUENTE.normal,
+    fontSize: 11,
+    lineHeight: 16,
+    color: COLOR.tenue,
     textAlign: 'center',
-    lineHeight: 17,
-    marginTop: 10,
+    alignSelf: 'center',
+    maxWidth: 560,
   },
 });

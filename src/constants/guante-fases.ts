@@ -21,6 +21,22 @@ export const ETIQUETAS_FASE: Record<ConnectionPhase, string> = {
   desconectado: 'Desconectado',
 };
 
+/** Versión corta para chips de estado en barras estrechas. */
+export const ETIQUETAS_CORTAS: Record<ConnectionPhase, string> = {
+  inicial: 'Sin conectar',
+  verificando: 'Verificando…',
+  'bt-apagado': 'Bluetooth apagado',
+  'ble-no-disponible': 'Sin BLE',
+  'permiso-denegado': 'Sin permisos',
+  escaneando: 'Buscando…',
+  'no-encontrado': 'No encontrado',
+  conectando: 'Conectando…',
+  conectado: 'Preparando…',
+  operativo: 'Guante listo',
+  reconectando: 'Reconectando…',
+  desconectado: 'Desconectado',
+};
+
 /** Colores semánticos asociados a cada fase (apoyo visual, no único canal). */
 export const COLORES_FASE: Record<ConnectionPhase, string> = {
   inicial: '#8a8a8a',

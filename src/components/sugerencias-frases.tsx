@@ -5,6 +5,7 @@
 
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { COLOR, FUENTE } from '@/constants/tema';
 import type { Frase, SugerenciaFrase } from '@/domain/frases';
 
 interface Props {
@@ -27,12 +28,16 @@ export function SugerenciasFrases({ sugerencias, onElegir }: Props) {
           <Pressable
             key={frase.id}
             onPress={() => onElegir(frase)}
-            style={({ pressed }) => [styles.chip, pressed && styles.chipPulsado]}
+            style={({ pressed }) => [
+              styles.chip,
+              tipo === 'frase' && styles.chipFrase,
+              pressed && styles.chipPulsado,
+            ]}
             accessibilityRole="button"
             accessibilityLabel={`Completar con ${frase.texto}`}
           >
             <Text style={styles.chipTexto}>{frase.texto}</Text>
-            <Text style={styles.chipTipo}>
+            <Text style={[styles.chipTipo, tipo === 'frase' && { color: COLOR.guante }]}>
               {tipo === 'frase' ? 'frase' : 'palabra'}
             </Text>
           </Pressable>
@@ -44,14 +49,12 @@ export function SugerenciasFrases({ sugerencias, onElegir }: Props) {
 
 const styles = StyleSheet.create({
   bloque: {
-    gap: 6,
+    gap: 8,
   },
   titulo: {
-    color: '#7a7a7a',
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
+    fontFamily: FUENTE.negrita,
+    fontSize: 13,
+    color: COLOR.suave,
   },
   fila: {
     gap: 8,
@@ -60,25 +63,29 @@ const styles = StyleSheet.create({
   chip: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#3b3b3b',
-    backgroundColor: '#161616',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    borderColor: COLOR.borde,
+    backgroundColor: COLOR.capa,
+    paddingVertical: 9,
+    paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
+  chipFrase: {
+    borderColor: COLOR.guanteBorde,
+    backgroundColor: COLOR.guanteSuave,
+  },
   chipPulsado: {
-    backgroundColor: '#262626',
+    opacity: 0.7,
   },
   chipTexto: {
-    color: '#f0f0f0',
+    fontFamily: FUENTE.negrita,
     fontSize: 14,
-    fontWeight: '600',
+    color: COLOR.texto,
   },
   chipTipo: {
-    color: '#7f8c8d',
-    fontSize: 10,
-    textTransform: 'uppercase',
+    fontFamily: FUENTE.normal,
+    fontSize: 11,
+    color: COLOR.tenue,
   },
 });

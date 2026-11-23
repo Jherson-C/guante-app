@@ -1,31 +1,57 @@
 /**
- * Pantalla de transcripción — el texto concatenado tal como define el flujo
- * de datos del MVP (SPEC §3 → interpretarFrame en use-guante).
- * Alto contraste + tipografía grande para lectura del interlocutor en
- * conversación frente a frente. Wake-lock: la pantalla no se apaga en sesión.
+ * Editor con sugerencias: el texto acumulado del guante en grande, frases
+ * sugeridas para completarlo y los controles de espacio, borrar y limpiar.
+ * Se abre desde el panel "Señales" de la conversación.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { router } from 'expo-router';
-import { activateKeepAwakeAsync } from 'expo-keep-awake';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useKeepAwake } from 'expo-keep-awake';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Cristal } from '@/components/cristal';
+import { Fondo } from '@/components/fondo';
+import { Icono } from '@/components/icono';
 import { SugerenciasFrases } from '@/components/sugerencias-frases';
-import { COLORES_FASE, ETIQUETAS_FASE } from '@/constants/guante-fases';
+import { COLORES_FASE, ETIQUETAS_CORTAS } from '@/constants/guante-fases';
+import { COLOR, FUENTE } from '@/constants/tema';
 import { completarConFrase, sugerirFrases } from '@/domain/frases';
 import type { Frase } from '@/domain/frases';
 import { useGuante } from '@/hooks/use-guante';
 
+function Accion({
+  etiqueta,
+  descripcion,
+  alPresionar,
+  tono,
+}: {
+  etiqueta: string;
+  descripcion: string;
+  alPresionar: () => void;
+  tono?: string;
+}) {
+  return (
+    <Pressable
+      onPress={alPresionar}
+      style={({ pressed }) => [styles.accion, pressed && { opacity: 0.65 }]}
+      accessibilityRole="button"
+      accessibilityLabel={descripcion}
+    >
+      <Cristal tinte={tono} style={styles.accionCara}>
+        <Text style={[styles.accionTexto, tono ? { color: tono } : null]}>{etiqueta}</Text>
+      </Cristal>
+    </Pressable>
+  );
+}
+
 export default function Transcripcion() {
+  useKeepAwake();
+
   const {
     texto,
     fase,
     confianza,
-    debugFrames,
-    totalFrames,
-    framesInvalidos,
-    infoLineas,
-    tele,
     simulado,
     limpiarTexto,
     agregarEspacio,
@@ -33,266 +59,199 @@ export default function Transcripcion() {
     reemplazarTexto,
     desconectar,
   } = useGuante();
-  const [debugAbierto, setDebugAbierto] = useState(false);
   const sugerencias = useMemo(() => sugerirFrases(texto), [texto]);
-
-  useEffect(() => {
-    void activateKeepAwakeAsync();
-  }, []);
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const tamano = width > height ? 44 : Math.min(60, Math.max(34, Math.round(width * 0.12)));
 
   return (
-    <View style={styles.contenedor}>
-      <View style={styles.barra}>
-        <Text style={[styles.fase, { color: COLORES_FASE[fase] }]}>
-          {ETIQUETAS_FASE[fase]}
-        </Text>
-        <View style={styles.barraDerecha}>
-          {confianza !== null ? (
-            <Text style={styles.confianza}>conf. {confianza}%</Text>
-          ) : null}
-          <Pressable
-            onPress={() => router.push('/conversacion')}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Abrir el modo conversación"
-          >
-            <Text style={styles.iconoPantalla}>⛶</Text>
-          </Pressable>
-        </View>
-      </View>
+    <View style={styles.raiz}>
+      <Fondo activo={texto ? 'guante' : null} />
 
-      {simulado ? (
-        <Text style={styles.avisoSimulado}>
-          SIMULADO · firmware de demo, sin sensores
-        </Text>
-      ) : null}
-
-      <View style={styles.textoZona}>
-        <Text
-          style={styles.texto}
-          numberOfLines={4}
-          adjustsFontSizeToFit
-          minimumFontScale={0.35}
-          accessibilityLabel="Texto transcrito del guante"
-        >
-          {texto || '…'}
-        </Text>
-      </View>
-
-      <SugerenciasFrases
-        sugerencias={sugerencias}
-        onElegir={(frase: Frase) => reemplazarTexto(completarConFrase(texto, frase))}
-      />
-
-      <View style={styles.filaEdicion}>
-        <Pressable
-          style={styles.botonEdicion}
-          onPress={agregarEspacio}
-          accessibilityRole="button"
-          accessibilityLabel="Agregar un espacio al texto"
-        >
-          <Text style={styles.botonEdicionTexto}>ESPACIO</Text>
-        </Pressable>
-        <Pressable
-          style={styles.botonEdicion}
-          onPress={borrarUltimo}
-          accessibilityRole="button"
-          accessibilityLabel="Borrar el último carácter"
-        >
-          <Text style={styles.botonEdicionTexto}>⌫ BORRAR</Text>
-        </Pressable>
-        <Pressable
-          style={styles.botonEdicion}
-          onPress={limpiarTexto}
-          accessibilityRole="button"
-          accessibilityLabel="Limpiar todo el texto transcrito"
-        >
-          <Text style={styles.botonEdicionTexto}>LIMPIAR</Text>
-        </Pressable>
-      </View>
-
-      <Pressable
-        style={styles.botonDebug}
-        onPress={() => setDebugAbierto((v) => !v)}
-        accessibilityRole="button"
-        accessibilityLabel="Mostrar panel de depuración"
+      <ScrollView
+        contentContainerStyle={[
+          styles.marco,
+          {
+            paddingTop: Math.max(insets.top, 12),
+            paddingBottom: Math.max(insets.bottom, 14),
+            paddingLeft: Math.max(insets.left, 16),
+            paddingRight: Math.max(insets.right, 16),
+          },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.botonDebugTexto}>
-          {debugAbierto ? '▾ depuración' : '▸ depuración'}
-        </Text>
-      </Pressable>
-
-      {debugAbierto ? (
-        <View style={styles.panelDebug}>
-          {tele ? (
-            <Text style={styles.debugLinea}>
-              flex {tele.flex.map((f) => f.toFixed(0)).join('/')} · r{tele.roll.toFixed(0)}
-              ° p{tele.pitch.toFixed(0)}° g{tele.gyro.toFixed(0)}
-            </Text>
-          ) : null}
-          <Text style={styles.debugTitulo}>
-            reconocimientos · total {totalFrames} · inválidos {framesInvalidos}
-          </Text>
-          {debugFrames.map((f) => (
-            <Text key={f.id} style={styles.debugLinea}>
-              {f.texto}
-              {f.confianza !== null ? ` · conf ${f.confianza}%` : ''}
-            </Text>
-          ))}
-          {infoLineas.length > 0 ? (
-            <Text style={styles.debugLinea} numberOfLines={1}>
-              firmware: {infoLineas[0]}
-            </Text>
-          ) : null}
-          <Text style={styles.debugNota}>
-            Telemetría/estado viven solo en memoria — ni esto se persiste.
-          </Text>
+        <View style={styles.barra}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Volver a la conversación"
+          >
+            <Cristal style={styles.redondo}>
+              <Icono nombre="atras" tamano={20} />
+            </Cristal>
+          </Pressable>
+          <Cristal style={styles.chip}>
+            <View style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]} />
+            <Text style={styles.chipTexto}>{ETIQUETAS_CORTAS[fase]}</Text>
+            {confianza !== null ? <Text style={styles.conf}>{confianza}%</Text> : null}
+          </Cristal>
         </View>
-      ) : null}
 
-      <View style={styles.filaBotones}>
-        <Pressable
-          style={styles.botonSecundario}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Volver a la pantalla de conexión"
-        >
-          <Text style={styles.botonSecundarioTexto}>Volver</Text>
-        </Pressable>
-        <Pressable
-          style={[styles.botonSecundario, styles.botonSalir]}
-          onPress={desconectar}
-          accessibilityRole="button"
-          accessibilityLabel="Finalizar sesión y desconectar el guante"
-        >
-          <Text style={[styles.botonSecundarioTexto, { color: '#e05a4e' }]}>
-            Terminar sesión
+        {simulado ? (
+          <Text style={styles.simulado}>Firmware de demostración: sin sensores reales</Text>
+        ) : null}
+
+        <Cristal fuerte tinte={COLOR.guanteBorde} style={styles.tarjeta}>
+          <View style={styles.tarjetaCabecera}>
+            <Icono nombre="mano" tamano={14} color={COLOR.guante} />
+            <Text style={styles.tarjetaNombre}>Texto del guante</Text>
+          </View>
+          <Text
+            style={[styles.texto, { fontSize: tamano, lineHeight: Math.round(tamano * 1.12) }]}
+            accessibilityLabel="Texto transcrito del guante"
+          >
+            {texto || '…'}
           </Text>
-        </Pressable>
-      </View>
+        </Cristal>
+
+        <SugerenciasFrases
+          sugerencias={sugerencias}
+          // Función sobre el texto más reciente: si llega una letra justo al tocar, no se pierde.
+          onElegir={(frase: Frase) => reemplazarTexto((previo) => completarConFrase(previo, frase))}
+        />
+
+        <View style={styles.fila}>
+          <Accion etiqueta="Espacio" descripcion="Agregar un espacio" alPresionar={agregarEspacio} />
+          <Accion
+            etiqueta="Borrar"
+            descripcion="Borrar el último carácter"
+            alPresionar={borrarUltimo}
+          />
+          <Accion
+            etiqueta="Limpiar"
+            descripcion="Limpiar todo el texto"
+            alPresionar={limpiarTexto}
+          />
+        </View>
+
+        <View style={styles.fila}>
+          <Accion
+            etiqueta="Volver"
+            descripcion="Volver a la conversación"
+            alPresionar={() => router.back()}
+          />
+          <Accion
+            etiqueta="Terminar sesión"
+            descripcion="Finalizar la sesión y desconectar el guante"
+            tono={COLOR.coral}
+            alPresionar={() => {
+              desconectar();
+              router.replace('/');
+            }}
+          />
+        </View>
+
+        <Text style={styles.pie}>El texto vive solo en la memoria del teléfono.</Text>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  contenedor: {
+  raiz: {
     flex: 1,
-    backgroundColor: '#000',
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
+    backgroundColor: COLOR.abismo,
+  },
+  marco: {
+    flexGrow: 1,
+    gap: 14,
   },
   barra: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    minHeight: 24,
+    gap: 8,
   },
-  fase: {
-    fontSize: 14,
-    fontWeight: '600',
+  redondo: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  confianza: {
-    fontSize: 14,
-    color: '#8a8a8a',
-  },
-  barraDerecha: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 22,
   },
-  iconoPantalla: {
-    color: '#8a8a8a',
-    fontSize: 20,
+  punto: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  avisoSimulado: {
-    color: '#e0b34e',
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: 4,
-    letterSpacing: 0.5,
+  chipTexto: {
+    fontFamily: FUENTE.normal,
+    fontSize: 13,
+    color: COLOR.texto,
   },
-  textoZona: {
-    flex: 1,
+  conf: {
+    fontFamily: FUENTE.negrita,
+    fontSize: 12,
+    color: COLOR.guante,
+  },
+  simulado: {
+    fontFamily: FUENTE.negrita,
+    fontSize: 12,
+    color: COLOR.voz,
+  },
+  tarjeta: {
+    flexGrow: 1,
+    minHeight: 160,
+    padding: 20,
+    gap: 10,
     justifyContent: 'center',
+    borderRadius: 26,
+  },
+  tarjetaCabecera: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 7,
+  },
+  tarjetaNombre: {
+    fontFamily: FUENTE.negrita,
+    fontSize: 12,
+    color: COLOR.guante,
   },
   texto: {
-    color: '#ffffff',
-    fontSize: 96,
-    fontWeight: '700',
-    textAlign: 'center',
-    flexShrink: 1,
+    fontFamily: FUENTE.display,
+    color: COLOR.texto,
+    letterSpacing: -0.8,
   },
-  filaEdicion: {
+  fila: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 10,
+    gap: 10,
   },
-  botonEdicion: {
+  accion: {
     flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#5a5a5a',
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    alignItems: 'center',
   },
-  botonEdicionTexto: {
-    color: '#ffffff',
+  accionCara: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 18,
+  },
+  accionTexto: {
+    fontFamily: FUENTE.negrita,
     fontSize: 14,
-    fontWeight: '600',
+    color: COLOR.texto,
   },
-  botonDebug: {
-    alignSelf: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    marginBottom: 8,
-  },
-  botonDebugTexto: {
-    color: '#6a6a6a',
-    fontSize: 13,
-  },
-  panelDebug: {
-    borderRadius: 8,
-    backgroundColor: '#111',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-  },
-  debugTitulo: {
-    color: '#6a6a6a',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  debugLinea: {
-    color: '#cccccc',
-    fontSize: 12,
-  },
-  debugNota: {
-    color: '#545454',
+  pie: {
+    fontFamily: FUENTE.normal,
     fontSize: 11,
-    marginTop: 4,
-  },
-  filaBotones: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  botonSecundario: {
-    flex: 1,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#5a5a5a',
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  botonSalir: {
-    borderColor: '#7a3833',
-  },
-  botonSecundarioTexto: {
-    color: '#dddddd',
-    fontSize: 16,
+    color: COLOR.tenue,
+    textAlign: 'center',
   },
 });

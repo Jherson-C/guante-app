@@ -16,13 +16,8 @@
 import { BleManager, Device, State, Subscription } from 'react-native-ble-plx';
 import { PermissionsAndroid, Platform } from 'react-native';
 
-import {
-  GUANTE_NAME,
-  GUANTE_TX_UUID,
-  GUANTE_SERVICE_UUID,
-  parseLine,
-} from './protocol';
-import type { Frame } from './protocol';
+import { parseLine } from './protocol';
+import type { Frame, PerfilBle } from './protocol';
 import { decodeBase64ABytes, decodeUtf8 } from './utf8';
 
 export { decodeBase64ATexto } from './utf8';
@@ -44,15 +39,21 @@ export type ConnectionPhase =
 /** SPEC §6.5: 1 s → 2 s → 4 s, máx. 5 intentos */
 const DELAYS_RECONEXION_MS = [1000, 2000, 4000, 4000, 4000];
 const TIMEOUT_ESCANEO_MS = 15_000;
-const TRANSACTION_ID = 'guante-monitoreo-1';
+const BLE_CHUNK = 20; // MTU mínimo: HM-10 no negocia más
+
+// ble-plx exige UN solo BleManager para toda la app.
+let managerCompartido: BleManager | null = null;
+// Android solo permite un escaneo a la vez: los dispositivos hacen cola.
+let colaEscaneo: Promise<unknown> = Promise.resolve();
 
 export interface GuanteEvents {
   onPhase(phase: ConnectionPhase, detalle?: string): void;
-  onFrame(frame: Frame): void;
+  onFrame(frame: Frame, linea: string): void;
 }
 
-export class GuanteClient {
-  private readonly manager = new BleManager();
+/** Cliente de un dispositivo BLE de texto por líneas (guante o base). */
+export class DispositivoBle {
+  private readonly manager = (managerCompartido ??= new BleManager());
   private idDispositivo: string | null = null;
   private subDesconexion: Subscription | null = null;
   private subMonitor: Subscription | null = null;
@@ -61,10 +62,35 @@ export class GuanteClient {
   /** Bytes pendientes de una línea (no texto: un UTF-8 puede partirse). */
   private bufferLinea: number[] = [];
   private primeraNotificacion = false;
+  /** Corta el escaneo en curso de ESTE dispositivo (sin tocar la cola). */
+  private cancelarEscaneo: (() => void) | null = null;
   private events: GuanteEvents;
+  private perfil: PerfilBle;
 
-  constructor(events: GuanteEvents) {
+  constructor(perfil: PerfilBle, events: GuanteEvents) {
+    this.perfil = perfil;
     this.events = events;
+  }
+
+  /** Tiene dispositivo asignado (operativo o reconectando). */
+  get conectado(): boolean {
+    return this.idDispositivo !== null;
+  }
+
+  /** Envía una línea (se agrega '\n'), en trozos de 20 bytes. */
+  async enviar(linea: string): Promise<void> {
+    const id = this.idDispositivo;
+    if (!id) throw new Error('Dispositivo no conectado');
+    const bytes = new TextEncoder().encode(linea + '\n');
+    for (let i = 0; i < bytes.length; i += BLE_CHUNK) {
+      const trozo = String.fromCharCode(...bytes.subarray(i, i + BLE_CHUNK));
+      await this.manager.writeCharacteristicWithoutResponseForDevice(
+        id,
+        this.perfil.servicio,
+        this.perfil.rx,
+        btoa(trozo),
+      );
+    }
   }
 
   /** Flujo completo de conexión desde cero (escaneo incluido). */
@@ -90,7 +116,9 @@ export class GuanteClient {
     }
 
     this.events.onPhase('escaneando');
-    const id = await this.buscarGuante();
+    const busqueda = colaEscaneo.then(() => (this.desconectManual ? null : this.buscar()));
+    colaEscaneo = busqueda;
+    const id = await busqueda;
     if (!id) return;
     await this.conectarEASubscribirse(id);
   }
@@ -98,7 +126,7 @@ export class GuanteClient {
   /** Desconexión manual (el texto en memoria se conserva — SPEC §6.5). */
   async desconectar(): Promise<void> {
     this.desconectManual = true;
-    this.manager.stopDeviceScan();
+    this.cancelarEscaneo?.();
     this.limpiarSuscripciones();
     this.bufferLinea = [];
     if (this.idDispositivo) {
@@ -111,7 +139,7 @@ export class GuanteClient {
   /** Limpieza al desmontar la app (mata listeners, no el texto). */
   cleanup(): void {
     this.desconectManual = true;
-    this.manager.stopDeviceScan();
+    this.cancelarEscaneo?.();
     this.limpiarSuscripciones();
     this.bufferLinea = [];
   }
@@ -139,9 +167,16 @@ export class GuanteClient {
     return true;
   }
 
-  private buscarGuante(): Promise<string | null> {
-    return new Promise((resolve) => {
+  private buscar(): Promise<string | null> {
+    return new Promise<string | null>((resolve) => {
       let resuelto = false;
+      this.cancelarEscaneo = () => {
+        if (resuelto) return;
+        resuelto = true;
+        clearTimeout(timeout);
+        this.manager.stopDeviceScan();
+        resolve(null);
+      };
 
       const timeout = setTimeout(() => {
         if (resuelto) return;
@@ -151,7 +186,8 @@ export class GuanteClient {
         resolve(null);
       }, TIMEOUT_ESCANEO_MS);
 
-      this.manager.startDeviceScan([GUANTE_SERVICE_UUID], null, (error, device) => {
+      // Sin filtro de servicio: varios clones HM-10 no anuncian FFE0. Se filtra por nombre.
+      this.manager.startDeviceScan(null, null, (error, device) => {
         if (resuelto) return;
         if (error) {
           resuelto = true;
@@ -161,13 +197,16 @@ export class GuanteClient {
           resolve(null);
           return;
         }
-        if (device && (device.name === GUANTE_NAME || device.localName === GUANTE_NAME)) {
+        const nombres = this.perfil.nombres;
+        if (device && (nombres.includes(device.name ?? '') || nombres.includes(device.localName ?? ''))) {
           resuelto = true;
           clearTimeout(timeout);
           this.manager.stopDeviceScan();
           resolve(device.id);
         }
       });
+    }).finally(() => {
+      this.cancelarEscaneo = null;
     });
   }
 
@@ -229,8 +268,8 @@ export class GuanteClient {
   private suscribir(device: Device): void {
     this.subMonitor?.remove();
     this.subMonitor = device.monitorCharacteristicForService(
-      GUANTE_SERVICE_UUID,
-      GUANTE_TX_UUID,
+      this.perfil.servicio,
+      this.perfil.tx,
       (error, characteristic) => {
         if (error || !characteristic?.value) return;
         if (this.primeraNotificacion) {
@@ -239,8 +278,10 @@ export class GuanteClient {
         }
         this.entrarBytes(decodeBase64ABytes(characteristic.value));
       },
-      TRANSACTION_ID,
+      `monitor-${this.perfil.nombres[0]}`,
     );
+    // Dispositivos que no saludan solos (la base): su respuesta marca "operativo".
+    if (this.perfil.saludo) this.enviar(this.perfil.saludo).catch(() => {});
   }
 
   /**
@@ -258,7 +299,7 @@ export class GuanteClient {
       const lineaBytes = this.bufferLinea.slice(0, salto);
       this.bufferLinea = this.bufferLinea.slice(salto + 1);
       const linea = decodeUtf8(new Uint8Array(lineaBytes));
-      if (linea.trim()) this.events.onFrame(parseLine(linea));
+      if (linea.trim()) this.events.onFrame(parseLine(linea), linea.trim());
       salto = this.bufferLinea.indexOf(0x0a);
     }
 
