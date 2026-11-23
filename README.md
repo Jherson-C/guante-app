@@ -1,72 +1,102 @@
-# Welcome to your Expo app 👋
+# Guante Traductor
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App para Android que traduce lengua de señas a texto y voz. Recibe por Bluetooth (BLE) lo que reconocen **dos guantes con sensores** y controla una **base giratoria**. La otra persona responde hablando: el micrófono transcribe su voz para que la persona sorda la lea en la misma pantalla.
 
-## Get started
+Hecha con [Expo](https://expo.dev) (SDK 58), React Native y Expo Router.
 
-1. Install dependencies
+## Qué hace
 
-   ```bash
-   npm install
-   ```
+- **Conversación de dos vías:** lo que se firma con los guantes y lo que se dice en voz alta aparecen en un mismo hilo, en orden. El texto firmado se puede leer en voz alta.
+- **Dos guantes a la vez:** el derecho y el izquierdo escriben en el mismo texto.
+- **Base giratoria:** la app le manda órdenes de giro por Bluetooth.
+- **Editor con sugerencias:** completa frases del catálogo con tildes y signos.
+- **Modo práctica:** prueba el abecedario, frases y guiones de conversación sin ningún hardware.
+- **Privacidad:** el texto vive solo en memoria y se pierde al cerrar la app. No se guarda audio ni texto.
 
-2. Start the app
+## Hardware
 
-   ```bash
-   npx expo start
-   ```
+| Dispositivo | Placa | Nombre BLE | Código |
+|---|---|---|---|
+| Guante derecho | ESP32 + 5 sensores de flexión + MPU6050 | `GuanteLSP-D` | [guante_estatico/](guante_estatico/guante_estatico.ino) |
+| Guante izquierdo | ESP32 + 5 sensores de flexión + MPU6050 | `GuanteLSP-I` | [guante_estatico/](guante_estatico/guante_estatico.ino) |
+| Base giratoria | Arduino UNO + módulo HM-10 + servo | `BaseGiro` | [base_giratoria/](base_giratoria/base_giratoria.ino) |
+| Base giratoria (alternativa) | ESP32 + servo | `BaseGiro` | [base_giratoria_esp32/](base_giratoria_esp32/base_giratoria_esp32.ino) |
 
-In the output, you'll find options to open the app in a
+**Guantes:** los dos usan el mismo firmware. Antes de cargarlo, cambia `DEVICE_NAME` según la mano: `"GuanteLSP-D"` para la derecha y `"GuanteLSP-I"` para la izquierda. El derecho también conecta con el nombre antiguo `GuanteLSP`.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+**Base giratoria:** el Arduino UNO no tiene Bluetooth propio, así que necesita un módulo **HM-10** o un clon BLE (AT-09, BT05, MLT-BT05, CC41-A). Un HC-05 o HC-06 **no sirve**, porque es Bluetooth clásico. Si no tienes HM-10, usa la versión ESP32: se presenta igual que un HM-10 y la app no necesita cambios. Las conexiones de cables están al principio de cada sketch.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Protocolo Bluetooth
 
-## Get a fresh project
+Todos los dispositivos hablan con **líneas de texto terminadas en `\n`**.
 
-When you're ready, run:
+**Guantes** (servicio Nordic UART `6e400001-…`):
+
+| Línea | Significado |
+|---|---|
+| `S:nombre\|conf` | Seña reconocida: una letra (`S:A\|95`) o una palabra aprendida (`S:BUENOS DÍAS\|97`) |
+| `S:ESPACIO` · `S:BORRAR` · `S:LIMPIAR` | Controles de edición del texto |
+| `D:f1,f2,f3,f4,f5,roll,pitch,gyro` | Telemetría en vivo |
+| `HELLO:…` · `OK:…` · `ERR:…` · `WARN:…` | Mensajes informativos |
+
+**Base giratoria** (servicio `FFE0`, característica `FFE1`):
+
+| App → base | Base → app |
+|---|---|
+| `PING` (al conectarse) | `PONG` |
+| `G:<0-180>` | `OK:G:<grados>` o `ERR:<motivo>` |
+
+## Cómo empezar
+
+Requisitos: Node.js y un teléfono Android.
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+La conexión Bluetooth **no funciona en Expo Go ni en la web**. Para probar con los guantes hace falta instalar un build propio:
 
-### Other setup steps
+```bash
+npx eas-cli@latest build --profile development --platform android
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Instala el APK que genera EAS en el teléfono y luego ejecuta `npx expo start`.
 
-## Learn more
+Para probar sin hardware, abre la app y entra en **Modo práctica**. También funciona en la web (`npx expo start --web`).
 
-To learn more about developing your project with Expo, look at the following resources:
+## Probar con el hardware
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Enciende los dos guantes y la base, a menos de un metro del teléfono.
+2. En la pantalla de conexión, toca **Conectar dispositivos**. La app los busca uno por uno y cada fila debe llegar a **Listo**.
+3. Con la base lista, usa los botones **Izquierda / Centro / Derecha** para probar el giro.
+4. Toca **Iniciar conversación**.
 
-## Join the community
+Cada dispositivo tiene su propio botón **Conectar / Desconectar** por si uno falla. El Monitor Serie de cada placa muestra lo que recibe y envía.
 
-Join our community of developers creating universal apps.
+## Estructura
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```
+src/
+  app/          Pantallas (Expo Router)
+    index.tsx         Conexión de los 3 dispositivos
+    conversacion.tsx  Conversación de dos vías
+    session.tsx       Editor con sugerencias
+    practica.tsx      Modo práctica sin hardware
+  ble/          Cliente Bluetooth y protocolo
+  hooks/        Estado del guante, voz, turnos, práctica
+  domain/       Abecedario, frases y edición del texto
+  components/   Componentes visuales
+  constants/    Tema y etiquetas de estado
+guante_estatico/       Firmware de los guantes (ESP32)
+base_giratoria/        Base con Arduino UNO + HM-10
+base_giratoria_esp32/  Base alternativa con ESP32
+```
 
-## Modo práctica (sin guante)
+## Comandos útiles
 
-Mientras el guante no está soldado, la app se puede probar sin Bluetooth:
-
-1. `npx expo start`
-2. En la pantalla de conexión, tocar **“Probar sin guante · modo práctica”**.
-3. Usar las pestañas **Letras** (A–Z + Ñ), **Frases** (catálogo por categoría) y
-   **Guion** (conversaciones reproducidas letra por letra).
-
-El texto y la confianza son **simulados**; la pantalla lo indica. El detalle de
-esta etapa y el firmware de demo están en `../MODO_SIMULADO.md`.
-
-> La **conexión BLE** solo funciona en **Android** con el APK/development build
-> (`react-native-ble-plx` no existe en web ni en Expo Go). En web, usá el modo
-> práctica; para probar BLE desde la PC, usá `../prueba_edwin.html` en Chrome.
+```bash
+npx expo lint       # revisar el código
+npx tsc --noEmit    # revisar los tipos
+npx expo-doctor     # diagnosticar dependencias
+```
