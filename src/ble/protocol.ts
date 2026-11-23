@@ -68,6 +68,16 @@ export const PERFILES: Record<IdDispositivo, PerfilBle> = {
   },
 };
 
+/**
+ * Hacia dónde gira la base (grados del servo, 0–180) para que la pantalla mire
+ * a quien tiene que leer. Calibrar según dónde se sienta cada persona: probar
+ * con los botones de giro de la pantalla de conexión y anotar aquí el ángulo.
+ */
+export const ANGULO_BASE = {
+  sordo: 0, // cuando habla el oyente: la persona sorda lee la traducción
+  oyente: 180, // cuando firma la persona sorda: el oyente ve el texto
+} as const;
+
 export const NOMBRES_DISPOSITIVO: Record<IdDispositivo, string> = {
   guanteDerecho: 'Guante derecho',
   guanteIzquierdo: 'Guante izquierdo',

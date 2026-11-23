@@ -6,9 +6,10 @@ Hecha con [Expo](https://expo.dev) (SDK 58), React Native y Expo Router.
 
 ## Qué hace
 
-- **Conversación de dos vías:** lo que se firma con los guantes y lo que se dice en voz alta aparecen en un mismo hilo, en orden. El texto firmado se puede leer en voz alta.
+- **Pantalla grande en horizontal:** el teléfono va sobre la base giratoria, entre las dos personas, y muestra un solo texto lo más grande posible.
+- **Guantes → voz:** lo que firma la persona sorda se dice en voz alta y la base gira la pantalla hacia el oyente.
+- **Voz → texto:** el micrófono escucha solo desde que se abre la conversación. Lo que dice el oyente aparece en grande y la base gira la pantalla hacia la persona sorda para que lo lea.
 - **Dos guantes a la vez:** el derecho y el izquierdo escriben en el mismo texto.
-- **Base giratoria:** la app le manda órdenes de giro por Bluetooth.
 - **Editor con sugerencias:** completa frases del catálogo con tildes y signos.
 - **Entrenamiento del guante:** se hace desde la página web `Entrenando Guante.html` (ver abajo).
 - **Privacidad:** el texto vive solo en memoria y se pierde al cerrar la app. No se guarda audio ni texto.
@@ -85,6 +86,10 @@ Luego abre `http://localhost:8000/Entrenando%20Guante.html` en **Chrome o Edge d
 4. Toca **Iniciar conversación**.
 
 Cada dispositivo tiene su propio botón **Conectar / Desconectar** por si uno falla. El Monitor Serie de cada placa muestra lo que recibe y envía.
+
+### Calibrar el giro de la base
+
+La base gira a dos posiciones: hacia la persona sorda (cuando habla el oyente) y hacia el oyente (cuando firma la persona sorda). Los ángulos están en `ANGULO_BASE`, en [src/ble/protocol.ts](src/ble/protocol.ts), y vienen en 0° y 180°. Usa los botones **Izquierda / Centro / Derecha** de la pantalla de conexión para ver hacia dónde queda cada ángulo, y cambia esos dos números según dónde se siente cada persona.
 
 ## Estructura
 

@@ -1,21 +1,9 @@
 /**
- * Controles de la conversación. `BotonMic` es el protagonista (rectángulo
- * grande que respira mientras escucha); `BotonControl` es el resto de acciones.
+ * Controles de la conversación (riel de botones con ícono y etiqueta).
  */
 
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  Easing,
-  cancelAnimation,
-  interpolate,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { Cristal } from '@/components/cristal';
 import { Icono } from '@/components/icono';
@@ -94,77 +82,6 @@ export function BotonControl({
   );
 }
 
-interface PropsMic {
-  escuchando: boolean;
-  alPresionar: () => void;
-}
-
-export function BotonMic({ escuchando, alPresionar }: PropsMic) {
-  const reducir = useReducedMotion();
-  const rebote = useRebote();
-  const onda = useSharedValue(0);
-
-  useEffect(() => {
-    if (escuchando && !reducir) {
-      onda.value = 0;
-      onda.value = withRepeat(
-        withTiming(1, { duration: 1800, easing: Easing.out(Easing.quad) }),
-        -1,
-        false,
-      );
-    } else {
-      cancelAnimation(onda);
-      onda.value = 0;
-    }
-    return () => cancelAnimation(onda);
-  }, [escuchando, reducir, onda]);
-
-  const anillo1 = useAnimatedStyle(() => ({
-    opacity: interpolate(onda.value, [0, 1], [0.45, 0]),
-    transform: [{ scale: interpolate(onda.value, [0, 1], [1, 1.28]) }],
-  }));
-  const anillo2 = useAnimatedStyle(() => {
-    const fase = (onda.value + 0.5) % 1;
-    return {
-      opacity: interpolate(fase, [0, 1], [0.35, 0]),
-      transform: [{ scale: interpolate(fase, [0, 1], [1, 1.28]) }],
-    };
-  });
-
-  return (
-    <AnimadoPressable
-      onPress={alPresionar}
-      onPressIn={rebote.alPresionar}
-      onPressOut={rebote.alSoltar}
-      accessibilityRole="button"
-      accessibilityLabel={escuchando ? 'Detener el micrófono' : 'Escuchar al oyente'}
-      accessibilityState={{ selected: escuchando }}
-      style={[styles.mic, rebote.estilo]}
-    >
-      {escuchando ? (
-        <>
-          <Animated.View pointerEvents="none" style={[styles.anillo, anillo1]} />
-          <Animated.View pointerEvents="none" style={[styles.anillo, anillo2]} />
-        </>
-      ) : null}
-      <View style={[styles.micCara, escuchando ? styles.micActivo : styles.micReposo]}>
-        <Icono
-          nombre={escuchando ? 'parar' : 'mic'}
-          tamano={30}
-          color={escuchando ? '#1A1206' : COLOR.voz}
-          grosor={2.2}
-        />
-        <Text style={[styles.micEtiqueta, escuchando && { color: '#1A1206' }]}>
-          {escuchando ? 'Escuchando' : 'Escuchar'}
-        </Text>
-        <Text style={[styles.micAyuda, escuchando && { color: 'rgba(26,18,6,0.7)' }]}>
-          {escuchando ? 'Toca para detener' : 'Toca para empezar'}
-        </Text>
-      </View>
-    </AnimadoPressable>
-  );
-}
-
 const styles = StyleSheet.create({
   control: {
     flex: 1,
@@ -182,42 +99,5 @@ const styles = StyleSheet.create({
     fontFamily: FUENTE.negrita,
     fontSize: 12,
     color: COLOR.suave,
-  },
-  mic: {
-    flex: 2.1,
-    minHeight: 80,
-  },
-  anillo: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: 26,
-    borderWidth: 2,
-    borderColor: COLOR.voz,
-  },
-  micCara: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    borderRadius: 26,
-    borderWidth: 1.5,
-  },
-  micReposo: {
-    backgroundColor: COLOR.vozSuave,
-    borderColor: COLOR.vozBorde,
-  },
-  micActivo: {
-    backgroundColor: COLOR.voz,
-    borderColor: COLOR.voz,
-  },
-  micEtiqueta: {
-    fontFamily: FUENTE.display,
-    fontSize: 18,
-    color: COLOR.voz,
-    letterSpacing: -0.3,
-  },
-  micAyuda: {
-    fontFamily: FUENTE.normal,
-    fontSize: 11,
-    color: COLOR.tenue,
   },
 });

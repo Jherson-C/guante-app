@@ -259,7 +259,7 @@ export default function Conexion() {
           </View>
 
           <View style={[styles.texto, horizontal && styles.textoHorizontal]}>
-            <Text style={[styles.titulo, { fontSize: horizontal ? 46 : 38 }]}>
+            <Text style={[styles.titulo, { fontSize: horizontal ? 32 : 38 }]}>
               {activo ? 'Guante listo' : 'Conecta tus guantes'}
             </Text>
             <Text style={styles.bajada}>
@@ -267,7 +267,7 @@ export default function Conexion() {
                 ? 'Ya puedes conversar: lo que firmes y lo que diga la otra persona aparecerán juntos en una sola pantalla.'
                 : 'Enciende los guantes y la base giratoria y mantenlos a menos de un metro del teléfono.'}
             </Text>
-            {!activo && esAndroid ? (
+            {!activo && esAndroid && !horizontal ? (
               <Text style={styles.ayuda}>
                 Sentirás una vibración cuando se conecte y con cada letra.
               </Text>

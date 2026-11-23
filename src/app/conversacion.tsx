@@ -1,37 +1,29 @@
 /**
- * Conversación de dos vías en UNA sola pantalla.
+ * Conversación en horizontal, a pantalla completa.
  *
- * Lo que firma el guante (cian, a la izquierda) y lo que dice la voz (ámbar, a
- * la derecha) se intercalan en un mismo hilo, en el orden en que ocurren. El
- * turno en curso es grande; los anteriores se achican y se apagan. En
- * horizontal los controles van en un riel a la derecha; en vertical, abajo.
- *
- * La voz alta es solo del lado del guante (el oyente escucha lo firmado). El
- * micrófono transcribe al oyente para que lo lea la persona sorda.
+ * El teléfono va sobre la base giratoria entre las dos personas y muestra un
+ * solo texto, en grande:
+ *   - La persona sorda firma con los guantes → la app lo dice en voz alta y la
+ *     base gira la pantalla hacia el oyente.
+ *   - El oyente habla → el micrófono lo transcribe en grande y la base gira la
+ *     pantalla hacia la persona sorda para que lo lea.
+ * El micrófono escucha solo desde que se abre la pantalla (manos libres).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ComponentRef } from 'react';
 import { router } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
-import {
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BotonControl, BotonMic } from '@/components/controles';
+import { ANGULO_BASE } from '@/ble/protocol';
+import { BotonControl } from '@/components/controles';
 import { Cristal } from '@/components/cristal';
 import { Fondo } from '@/components/fondo';
 import { Icono } from '@/components/icono';
 import { IndicadorTurno } from '@/components/indicador-turno';
-import { TarjetaTurno } from '@/components/tarjeta-turno';
+import { PantallaGrande } from '@/components/pantalla-grande';
 import { COLORES_FASE, ETIQUETAS_CORTAS, ETIQUETAS_FASE } from '@/constants/guante-fases';
 import { COLOR, FUENTE } from '@/constants/tema';
 import type { Fuente } from '@/constants/tema';
@@ -40,7 +32,7 @@ import { useReconocimientoVoz } from '@/hooks/use-reconocimiento-voz';
 import { useTextoAVoz } from '@/hooks/use-texto-a-voz';
 import { useTurnos } from '@/hooks/use-turnos';
 
-const ANCHO_RIEL = 136;
+const ANCHO_RIEL = 84;
 
 function salir() {
   if (router.canGoBack()) router.back();
@@ -53,6 +45,7 @@ export default function Conversacion() {
   const {
     texto,
     fase,
+    dispositivos,
     confianza,
     simulado,
     tele,
@@ -61,12 +54,14 @@ export default function Conversacion() {
     debugFrames,
     conectar,
     desconectar,
+    enviarBase,
     limpiarTexto,
     inyectarLinea,
   } = useGuante();
 
   const { hablar, detener: detenerVoz, hablando } = useTextoAVoz();
-  const [autoVoz, setAutoVoz] = useState(false);
+  // Lo firmado se lee en voz alta por defecto: es la forma en que el oyente "escucha" al sordo.
+  const [autoVoz, setAutoVoz] = useState(true);
   const [senales, setSenales] = useState(false);
 
   // Lo que dice la voz y el hilo se necesitan mutuamente: la voz entrega frases
@@ -97,6 +92,13 @@ export default function Conversacion() {
     agregarVozRef.current = agregarVoz;
     cerrarGuanteRef.current = cerrarGuante;
   });
+
+  // Manos libres: el micrófono empieza a escuchar al abrir la pantalla.
+  useEffect(() => {
+    if (Platform.OS !== 'web') void iniciar();
+    // Solo al montar; el usuario puede pausarlo con el botón.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Mientras el teléfono habla, el micrófono se pausa para no transcribirse a sí mismo.
   const reanudarRef = useRef(false);
@@ -130,23 +132,27 @@ export default function Conversacion() {
     router.replace('/');
   }, [detener, detenerVoz, desconectar]);
 
-  // --- Diseño responsivo -------------------------------------------------
-  const { width, height } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
-  const horizontal = width > height;
-  const anchoEscena = horizontal ? width - ANCHO_RIEL - insets.left - insets.right : width;
-  const anchoMax = Math.round(anchoEscena * (horizontal ? 0.78 : 0.92));
-  const tamanoVivo = horizontal
-    ? Math.min(54, Math.max(30, Math.round(anchoEscena * 0.055)))
-    : Math.min(46, Math.max(28, Math.round(width * 0.1)));
-
   // --- Quién tiene la palabra -------------------------------------------
   const vivoFuente: Fuente | null = parcial ? 'voz' : guanteVivo ? 'guante' : null;
-  const ultimaFuente = turnos.length > 0 ? turnos[turnos.length - 1].fuente : null;
-  const hayVivo = Boolean(guanteVivo) || Boolean(parcial);
-  const vacio = turnos.length === 0 && !hayVivo;
+  const ultimo = turnos.length > 0 ? turnos[turnos.length - 1] : null;
+  const quienHabla = vivoFuente ?? ultimo?.fuente ?? null;
 
-  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const actual = parcial
+    ? { fuente: 'voz' as const, texto: parcial, vivo: true }
+    : guanteVivo
+      ? { fuente: 'guante' as const, texto: guanteVivo, vivo: true }
+      : ultimo
+        ? { ...ultimo, vivo: false }
+        : null;
+  const previo = vivoFuente ? ultimo : turnos.length > 1 ? turnos[turnos.length - 2] : null;
+
+  // --- Base giratoria: la pantalla mira a quien tiene que leer -------------
+  // Habla el oyente → gira hacia la persona sorda; firma el sordo → hacia el oyente.
+  const baseLista = dispositivos.base.fase === 'operativo';
+  const mirarA = quienHabla === 'voz' ? 'sordo' : quienHabla === 'guante' ? 'oyente' : null;
+  useEffect(() => {
+    if (mirarA && baseLista) enviarBase(`G:${ANGULO_BASE[mirarA]}`).catch(() => {});
+  }, [mirarA, baseLista, enviarBase]);
 
   const sinGuante = fase !== 'operativo';
   const ocupado =
@@ -202,48 +208,9 @@ export default function Conversacion() {
     await esperar(3800);
     if (!activa()) return;
     decirVoz('Qué bueno. ¿Quieres un café?');
-    await esperar(2200);
-    if (!activa()) return;
-    inyectarLinea('S:GRACIAS|97');
   };
 
-  const botonMic = <BotonMic escuchando={escuchando} alPresionar={alternarMic} />;
-  const botonLeer = (
-    <BotonControl
-      icono="voz"
-      etiqueta={autoVoz ? 'Leer: sí' : 'Leer: no'}
-      descripcion={
-        autoVoz
-          ? 'Leer las señas en voz alta automáticamente: activado'
-          : 'Leer las señas en voz alta automáticamente: desactivado'
-      }
-      tono="guante"
-      encendido={autoVoz}
-      alPresionar={() => setAutoVoz((valor) => !valor)}
-    />
-  );
-  const botonBorrar = <BotonControl icono="borrar" etiqueta="Borrar" alPresionar={borrarTodo} />;
-  const botonTerminar = (
-    <BotonControl icono="apagar" etiqueta="Terminar" tono="coral" alPresionar={terminar} />
-  );
-
-  const controles = horizontal ? (
-    <View style={styles.riel}>
-      <View style={styles.rielMic}>{botonMic}</View>
-      <View style={styles.rielFila}>
-        {botonLeer}
-        {botonBorrar}
-      </View>
-      <View style={styles.rielTerminar}>{botonTerminar}</View>
-    </View>
-  ) : (
-    <View style={styles.muelle}>
-      {botonMic}
-      {botonLeer}
-      {botonBorrar}
-      {botonTerminar}
-    </View>
-  );
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={styles.raiz}>
@@ -253,182 +220,126 @@ export default function Conversacion() {
         style={[
           styles.marco,
           {
-            paddingTop: Math.max(insets.top, 12),
-            paddingBottom: Math.max(insets.bottom, 12),
+            paddingTop: Math.max(insets.top, 10),
+            paddingBottom: Math.max(insets.bottom, 10),
             paddingLeft: Math.max(insets.left, 14),
             paddingRight: Math.max(insets.right, 14),
           },
         ]}
       >
-        {/* Barra superior */}
-        <View style={styles.barra}>
-          <View style={styles.barraLado}>
-            <Pressable
-              onPress={salir}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Volver"
-            >
-              <Cristal style={styles.botonRedondo}>
-                <Icono nombre="atras" tamano={20} />
-              </Cristal>
-            </Pressable>
-            <Cristal style={styles.chip}>
-              <View style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]} />
-              <Text style={styles.chipTexto} numberOfLines={1}>
-                {ETIQUETAS_CORTAS[fase]}
-              </Text>
-              {simulado ? <Text style={styles.simulado}>simulado</Text> : null}
-            </Cristal>
-          </View>
-
-          {horizontal ? <IndicadorTurno fuente={vivoFuente ?? ultimaFuente} vivo={vivoFuente !== null} /> : null}
-
-          <View style={[styles.barraLado, styles.barraDerecha]}>
-            <Pressable
-              onPress={() => setSenales((valor) => !valor)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel="Ver señales del guante"
-              accessibilityState={{ expanded: senales }}
-            >
-              <Cristal
-                tinte={senales ? COLOR.guanteBorde : undefined}
-                style={styles.botonRedondo}
+        <View style={styles.escena}>
+          {/* Barra superior compacta */}
+          <View style={styles.barra}>
+            <View style={styles.barraLado}>
+              <Pressable
+                onPress={salir}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Volver"
               >
-                <Icono nombre="senales" tamano={20} color={senales ? COLOR.guante : COLOR.texto} />
+                <Cristal style={styles.botonRedondo}>
+                  <Icono nombre="atras" tamano={18} />
+                </Cristal>
+              </Pressable>
+              <Cristal style={styles.chip}>
+                <View style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]} />
+                <Text style={styles.chipTexto} numberOfLines={1}>
+                  {ETIQUETAS_CORTAS[fase]}
+                </Text>
+                {simulado ? <Text style={styles.simulado}>simulado</Text> : null}
               </Cristal>
-            </Pressable>
-          </View>
-        </View>
-
-        {!horizontal ? (
-          <View style={styles.indicadorVertical}>
-            <IndicadorTurno fuente={vivoFuente ?? ultimaFuente} vivo={vivoFuente !== null} />
-          </View>
-        ) : null}
-
-        {/* Cuerpo: escena + controles */}
-        <View style={[styles.cuerpo, horizontal && styles.cuerpoHorizontal]}>
-          <View style={styles.escena}>
-            {sinGuante || errorVoz ? (
-              <View style={styles.avisos}>
-                {sinGuante ? (
-                  <Cristal style={styles.aviso}>
-                    <View style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]} />
-                    <Text style={styles.avisoTexto} numberOfLines={2}>
-                      {ocupado
-                        ? ETIQUETAS_FASE[fase]
-                        : 'Guante sin conexión. Puedes seguir usando la voz.'}
-                    </Text>
-                    {!ocupado ? (
-                      <Pressable
-                        onPress={conectar}
-                        hitSlop={8}
-                        accessibilityRole="button"
-                        accessibilityLabel="Conectar el guante"
-                        style={styles.avisoAccion}
-                      >
-                        <Text style={styles.avisoAccionTexto}>Conectar</Text>
-                      </Pressable>
-                    ) : null}
-                  </Cristal>
-                ) : null}
-                {errorVoz ? (
-                  <Cristal tinte={'rgba(255,93,93,0.4)'} style={styles.aviso}>
-                    <Text style={[styles.avisoTexto, { color: COLOR.coral }]} numberOfLines={2}>
-                      {errorVoz}
-                    </Text>
-                  </Cristal>
-                ) : null}
-              </View>
-            ) : null}
-
-            {esDemo ? (
-              <Cristal style={styles.demo}>
-                <Text style={styles.demoTitulo}>Demo sin guante (solo web)</Text>
-                <View style={styles.demoFila}>
-                  <Pressable onPress={() => void correrDemo()} style={styles.demoBoton}>
-                    <Text style={styles.demoTexto}>Conversación de ejemplo</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      demoRef.current += 1;
-                      void firmar('BUENOS DIAS', demoRef.current);
-                    }}
-                    style={styles.demoBoton}
-                  >
-                    <Text style={styles.demoTexto}>Firmar «BUENOS DIAS»</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => decirVoz('Buenos días, ¿en qué te ayudo?')}
-                    style={styles.demoBoton}
-                  >
-                    <Text style={styles.demoTexto}>Voz de ejemplo</Text>
-                  </Pressable>
-                </View>
-              </Cristal>
-            ) : null}
-
-            <ScrollView
-              ref={scrollRef}
-              style={styles.scroll}
-              contentContainerStyle={styles.hilo}
-              showsVerticalScrollIndicator={false}
-              onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-            >
-              {vacio ? (
-                <Animated.View entering={FadeIn.duration(500)} style={styles.vacio}>
-                  <View style={styles.vacioIconos}>
-                    <Icono nombre="mano" tamano={26} color={COLOR.guante} />
-                    <View style={styles.vacioLinea} />
-                    <Icono nombre="mic" tamano={26} color={COLOR.voz} />
-                  </View>
-                  <Text style={styles.vacioTitulo}>La conversación aparece aquí</Text>
-                  <Text style={styles.vacioTexto}>
-                    Haz señas con el guante o toca el micrófono. Cada uno se muestra en su
-                    lado, en el orden en que ocurre.
+              {baseLista ? (
+                <Cristal style={styles.chip}>
+                  <View style={[styles.punto, { backgroundColor: COLOR.verde }]} />
+                  <Text style={styles.chipTexto} numberOfLines={1}>
+                    {mirarA === 'sordo'
+                      ? 'Base → persona sorda'
+                      : mirarA === 'oyente'
+                        ? 'Base → oyente'
+                        : 'Base lista'}
                   </Text>
-                </Animated.View>
+                </Cristal>
               ) : null}
+            </View>
 
-              {turnos.map((turno, indice) => {
-                const distancia = turnos.length - 1 - indice + (hayVivo ? 1 : 0);
-                return (
-                  <TarjetaTurno
-                    key={turno.id}
-                    fuente={turno.fuente}
-                    texto={turno.texto}
-                    hora={turno.hora}
-                    opacidad={Math.max(0.3, 1 - distancia * 0.2)}
-                    tamano={tamanoVivo}
-                    anchoMax={anchoMax}
-                    alHablar={turno.fuente === 'guante' ? () => hablar(turno.texto) : undefined}
-                  />
-                );
-              })}
+            <IndicadorTurno fuente={quienHabla} vivo={vivoFuente !== null} />
 
-              {guanteVivo ? (
-                <TarjetaTurno
-                  key="vivo-guante"
-                  fuente="guante"
-                  texto={guanteVivo}
-                  vivo
-                  tamano={tamanoVivo}
-                  anchoMax={anchoMax}
-                />
+            <View style={[styles.barraLado, styles.barraDerecha]}>
+              <Pressable
+                onPress={() => setSenales((valor) => !valor)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Ver señales del guante"
+                accessibilityState={{ expanded: senales }}
+              >
+                <Cristal
+                  tinte={senales ? COLOR.guanteBorde : undefined}
+                  style={styles.botonRedondo}
+                >
+                  <Icono nombre="senales" tamano={18} color={senales ? COLOR.guante : COLOR.texto} />
+                </Cristal>
+              </Pressable>
+            </View>
+          </View>
+
+          {sinGuante || errorVoz ? (
+            <View style={styles.avisos}>
+              {sinGuante ? (
+                <Cristal style={styles.aviso}>
+                  <View style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]} />
+                  <Text style={styles.avisoTexto} numberOfLines={1}>
+                    {ocupado ? ETIQUETAS_FASE[fase] : 'Guantes sin conexión.'}
+                  </Text>
+                  {!ocupado ? (
+                    <Pressable
+                      onPress={conectar}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel="Conectar los guantes"
+                      style={styles.avisoAccion}
+                    >
+                      <Text style={styles.avisoAccionTexto}>Conectar</Text>
+                    </Pressable>
+                  ) : null}
+                </Cristal>
               ) : null}
-              {parcial ? (
-                <TarjetaTurno
-                  key="vivo-voz"
-                  fuente="voz"
-                  texto={parcial}
-                  vivo
-                  tamano={tamanoVivo}
-                  anchoMax={anchoMax}
-                />
+              {errorVoz ? (
+                <Cristal tinte={'rgba(255,93,93,0.4)'} style={styles.aviso}>
+                  <Text style={[styles.avisoTexto, { color: COLOR.coral }]} numberOfLines={1}>
+                    {errorVoz}
+                  </Text>
+                </Cristal>
               ) : null}
-            </ScrollView>
+            </View>
+          ) : null}
+
+          {esDemo ? (
+            <View style={styles.demoFila}>
+              <Text style={styles.demoTitulo}>Demo web:</Text>
+              <Pressable onPress={() => void correrDemo()} style={styles.demoBoton}>
+                <Text style={styles.demoTexto}>Conversación de ejemplo</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  demoRef.current += 1;
+                  void firmar('BUENOS DIAS', demoRef.current);
+                }}
+                style={styles.demoBoton}
+              >
+                <Text style={styles.demoTexto}>Firmar</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => decirVoz('Buenos días, ¿en qué te ayudo?')}
+                style={styles.demoBoton}
+              >
+                <Text style={styles.demoTexto}>Hablar</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {/* La pantalla grande: el texto del turno actual */}
+          <View style={styles.grande}>
+            <PantallaGrande actual={actual} previo={previo} />
 
             {senales ? (
               <Animated.View
@@ -467,14 +378,33 @@ export default function Conversacion() {
                 </Cristal>
               </Animated.View>
             ) : null}
-
-            <Text style={styles.pie}>
-              El texto vive solo en la memoria del teléfono. El audio lo procesa el reconocedor de
-              Android; la app no lo guarda.
-            </Text>
           </View>
+        </View>
 
-          {controles}
+        {/* Riel de controles, angosto para dejarle la pantalla al texto */}
+        <View style={styles.riel}>
+          <BotonControl
+            icono={escuchando ? 'parar' : 'mic'}
+            etiqueta={escuchando ? 'Oyendo' : 'Mic'}
+            descripcion={escuchando ? 'Pausar el micrófono' : 'Escuchar al oyente'}
+            tono="voz"
+            encendido={escuchando}
+            alPresionar={alternarMic}
+          />
+          <BotonControl
+            icono="voz"
+            etiqueta={autoVoz ? 'Leer: sí' : 'Leer: no'}
+            descripcion={
+              autoVoz
+                ? 'Leer las señas en voz alta automáticamente: activado'
+                : 'Leer las señas en voz alta automáticamente: desactivado'
+            }
+            tono="guante"
+            encendido={autoVoz}
+            alPresionar={() => setAutoVoz((valor) => !valor)}
+          />
+          <BotonControl icono="borrar" etiqueta="Borrar" alPresionar={borrarTodo} />
+          <BotonControl icono="apagar" etiqueta="Terminar" tono="coral" alPresionar={terminar} />
         </View>
       </View>
     </View>
@@ -488,7 +418,12 @@ const styles = StyleSheet.create({
   },
   marco: {
     flex: 1,
-    gap: 10,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  escena: {
+    flex: 1,
+    gap: 8,
   },
   barra: {
     flexDirection: 'row',
@@ -497,29 +432,28 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   barraLado: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flexShrink: 1,
-    minWidth: 150,
   },
   barraDerecha: {
     justifyContent: 'flex-end',
   },
   botonRedondo: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    height: 44,
-    paddingHorizontal: 14,
-    borderRadius: 22,
+    gap: 7,
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 19,
     flexShrink: 1,
   },
   punto: {
@@ -529,7 +463,7 @@ const styles = StyleSheet.create({
   },
   chipTexto: {
     fontFamily: FUENTE.normal,
-    fontSize: 13,
+    fontSize: 12,
     color: COLOR.texto,
     flexShrink: 1,
   },
@@ -538,40 +472,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLOR.voz,
   },
-  indicadorVertical: {
-    alignItems: 'center',
-  },
-  cuerpo: {
-    flex: 1,
-    gap: 10,
-  },
-  cuerpoHorizontal: {
-    flexDirection: 'row',
-    gap: 14,
-  },
-  escena: {
-    flex: 1,
-  },
   avisos: {
+    flexDirection: 'row',
     gap: 8,
-    marginBottom: 8,
   },
   aviso: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 14,
   },
   avisoTexto: {
     flex: 1,
     fontFamily: FUENTE.normal,
-    fontSize: 13,
+    fontSize: 12,
     color: COLOR.suave,
   },
   avisoAccion: {
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 999,
     backgroundColor: COLOR.guanteSuave,
@@ -583,65 +504,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLOR.guante,
   },
-  scroll: {
-    flex: 1,
-  },
-  hilo: {
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-    gap: 10,
-    paddingVertical: 8,
-  },
-  vacio: {
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-  },
-  vacioIconos: {
+  demoFila: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-  },
-  vacioLinea: {
-    width: 44,
-    height: 1,
-    backgroundColor: COLOR.borde,
-  },
-  vacioTitulo: {
-    fontFamily: FUENTE.display,
-    fontSize: 24,
-    color: COLOR.texto,
-    letterSpacing: -0.5,
-    textAlign: 'center',
-  },
-  vacioTexto: {
-    fontFamily: FUENTE.normal,
-    fontSize: 14,
-    lineHeight: 21,
-    color: COLOR.suave,
-    textAlign: 'center',
-    maxWidth: 360,
-  },
-  demo: {
-    padding: 12,
-    gap: 8,
-    marginBottom: 8,
-    borderRadius: 16,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   demoTitulo: {
     fontFamily: FUENTE.negrita,
-    fontSize: 12,
-    color: COLOR.suave,
-  },
-  demoFila: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    fontSize: 11,
+    color: COLOR.tenue,
   },
   demoBoton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: COLOR.borde,
@@ -649,14 +525,17 @@ const styles = StyleSheet.create({
   },
   demoTexto: {
     fontFamily: FUENTE.negrita,
-    fontSize: 12,
+    fontSize: 11,
     color: COLOR.texto,
+  },
+  grande: {
+    flex: 1,
   },
   senales: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 34,
+    bottom: 0,
   },
   senalesCara: {
     padding: 14,
@@ -692,32 +571,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLOR.suave,
   },
-  pie: {
-    fontFamily: FUENTE.normal,
-    fontSize: 10,
-    lineHeight: 14,
-    color: COLOR.tenue,
-    textAlign: 'center',
-    marginTop: 4,
-  },
   riel: {
     width: ANCHO_RIEL,
-    gap: 10,
-  },
-  rielMic: {
-    flex: 1.8,
-  },
-  rielFila: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  rielTerminar: {
-    flex: 0.75,
-  },
-  muelle: {
-    flexDirection: 'row',
-    height: 112,
     gap: 8,
   },
 });
