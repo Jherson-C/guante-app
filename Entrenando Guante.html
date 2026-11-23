@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guante LSP — prueba (Edwin)</title>
+<style>
+  :root{
+    --bg:#050816; --panel:#0d1224; --line:#1d2745; --txt:#e6ebff; --mut:#8c97bd;
+    --ok:#22c55e; --warn:#f59e0b; --err:#ef4444; --acc:#facc15;
+    --c0:#10b981; --c1:#06b6d4; --c2:#8b5cf6; --c3:#f97316; --c4:#ec4899;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif}
+  header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  h1{font-size:18px;margin:0;flex:1}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--err)}
+  .dot.on{background:var(--ok)}
+  .dot.wait{background:var(--warn);animation:pulso 1s infinite}
+  @keyframes pulso{50%{opacity:.25}}
+  main{display:grid;gap:14px;padding:16px;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));max-width:1240px;margin:auto}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  h2{font-size:13px;margin:0 0 10px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+  button{background:#16204a;color:var(--txt);border:1px solid #2a3a73;border-radius:8px;padding:8px 12px;cursor:pointer;font:inherit}
+  button:hover{background:#1d2a62}
+  button.primary{background:var(--acc);color:#111;border-color:var(--acc);font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  input[type=text]{background:#0a0f1f;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit;width:100%}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .bar{display:grid;grid-template-columns:70px 1fr 52px;gap:8px;align-items:center;margin:6px 0}
+  .track{height:12px;background:#0a0f1f;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+  .fill{height:100%;width:0%;transition:width .08s linear}
+  .big{font-size:84px;font-weight:700;text-align:center;color:var(--acc);min-height:100px;line-height:100px}
+  .text{min-height:64px;background:#0a0f1f;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:22px;word-break:break-word}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px;margin-top:8px}
+  .grid button{padding:6px 0}
+  .grid button.sel{background:var(--acc);color:#111}
+  .grid button.done{border-color:var(--ok)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:#0a0f1f;border:1px solid var(--line);border-radius:999px;padding:3px 10px;display:flex;gap:6px;align-items:center}
+  .chip.c{border-color:#3b82f6}
+  .chip.r{border-color:var(--warn);border-style:dashed;color:var(--warn)}
+  .chip b{cursor:pointer;color:var(--err)}
+  #log{height:170px;overflow:auto;font:12px/1.5 ui-monospace,Consolas,monospace;color:var(--mut);background:#0a0f1f;border-radius:8px;padding:8px}
+  #log .ok{color:var(--ok)} #log .warn{color:var(--warn)} #log .err{color:var(--err)} #log .acc{color:var(--acc)}
+  .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;text-align:center}
+  .kv div{background:#0a0f1f;border-radius:8px;padding:6px}
+  .kv small{display:block;color:var(--mut)}
+  p.hint{color:var(--mut);margin:6px 0 0;font-size:13px}
+  .badge{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:#0a0f1f;color:var(--mut)}
+  .badge.on{color:#111;background:var(--ok);border-color:var(--ok);font-weight:600}
+  .badge.raw{color:#111;background:var(--c1);border-color:var(--c1);font-weight:600}
+  .badge.old{color:#111;background:var(--c3);border-color:var(--c3);font-weight:600}
+  .badge.sim{color:#111;background:var(--warn);border-color:var(--warn);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{color:var(--mut);font-weight:500;text-align:right;padding:4px 6px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:5px 6px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid #131b33}
+  td.est{text-align:center;font-size:12px}
+  .e-ok{color:var(--ok)} .e-flojo{color:var(--warn)} .e-muerto{color:var(--err)} .e-na{color:var(--mut)}
+  .banner{display:none;margin:0 16px;padding:12px 14px;border-radius:10px;border:1px solid #6b3b0a;background:#2a1a06;color:#fcd9a4;font-size:14px}
+  .banner.show{display:block}
+  .banner b{color:#fff}
+  code{background:#0a0f1f;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  .sub{font-size:12px;color:var(--mut);margin-top:8px}
+  .progress{height:8px;background:#0a0f1f;border-radius:999px;overflow:hidden;border:1px solid var(--line);margin:10px 0}
+  #prog{height:100%;width:0;background:var(--acc);transition:width .1s linear}
+  .rec{color:var(--err);font-weight:700;font-size:13px;letter-spacing:.05em}
+  .objetivo{display:grid;grid-template-columns:66px 1fr 88px;gap:8px;align-items:center;font-size:13px;margin:5px 0}
+  .objetivo .track{height:8px}
+  .ok-txt{color:var(--ok)}
+  input[type=number]{background:#0a0f1f;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;width:70px}
+  .col2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  label.chk{display:flex;gap:8px;align-items:center;color:var(--mut);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <span class="dot" id="dot"></span>
+  <h1>Guante LSP — <span id="status" style="font-weight:400;color:var(--mut)">desconectado</span></h1>
+  <span class="badge" id="modo">sin firmware</span>
+  <button class="primary" id="btnConnect">Conectar guante</button>
+  <button id="btnDisc" disabled>Desconectar</button>
+</header>
+
+<div class="banner" id="banner"></div>
+
+<main>
+  <section id="secVivo">
+    <h2>Lectura en vivo</h2>
+    <div id="bars"></div>
+    <div class="kv">
+      <div><small>Roll (°)</small><span id="roll">0</span></div>
+      <div><small>Pitch (°)</small><span id="pitch">0</span></div>
+      <div><small>Movimiento (°/s)</small><span id="gyro">0</span></div>
+    </div>
+    <p class="hint" id="hintBarras">Barras = flexión. Si el firmware es crudo, la barra muestra
+      el ADC (0–4095) y el número son cuentas crudas.</p>
+  </section>
+
+  <section id="secFlex">
+    <h2>Diagnóstico de los 5 flex</h2>
+    <div class="row">
+      <button id="btnReset" class="primary">Reiniciar mín/máx</button>
+      <button id="btnRaw">Leer crudo (RAW)</button>
+      <label class="chk"><input type="checkbox" id="autoRaw" checked> pedir crudo 2 vez/s</label>
+    </div>
+    <table>
+      <thead><tr><th>Dedo</th><th>ahora</th><th>R (kΩ)</th><th>mín</th><th>máx</th><th>recorrido</th><th>estado</th></tr></thead>
+      <tbody id="tablaFlex"></tbody>
+    </table>
+    <div class="sub" id="resumenFlex">Abre la mano, pulsa «Reiniciar mín/máx» y cierra el puño fuerte 3 veces.</div>
+  </section>
+
+  <section id="secSenas">
+    <h2>Seña detectada</h2>
+    <div class="big" id="big">—</div>
+    <h2 style="margin-top:12px">Texto</h2>
+    <div class="text" id="text"></div>
+    <div class="row">
+      <button id="btnSpace">Espacio</button>
+      <button id="btnBack">Borrar último</button>
+      <button id="btnClear">Limpiar</button>
+      <button id="btnSpeak" class="primary">Hablar</button>
+    </div>
+  </section>
+
+  <section id="secCal">
+    <h2>1. Calibración (cada usuario)</h2>
+    <div class="row">
+      <button id="btnOpen">Mano abierta (2 s)</button>
+      <button id="btnFist">Puño cerrado (2 s)</button>
+    </div>
+    <p class="hint">Solo la usa el firmware «antiguo». Primero estira todos los dedos y pulsa
+      “Mano abierta”; luego cierra el puño y pulsa “Puño cerrado”. Se guarda en el guante.</p>
+  </section>
+
+  <section id="secAprender">
+    <h2>2. Aprender letra o palabra</h2>
+    <input type="text" id="signName" placeholder="Nombre de la seña (ej. HOLA, A, LL)" maxlength="19">
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="useOri"> Usar orientación de la mano (roll/pitch)</label>
+    </div>
+    <div class="row">
+      <button class="primary" id="btnLearn">Guardar seña (cuenta atrás 3 s)</button>
+    </div>
+    <p class="hint">Escribe el nombre, pulsa el botón y haz la seña durante la cuenta atrás.
+      Si el nombre ya existe, se reemplaza.</p>
+    <p class="hint" style="margin-top:10px">Frases rápidas: formá una pose distinta y tocá una.
+      Se guardan con orientación (LEARNO) para separarlas de las letras.</p>
+    <div class="row" id="frasesAprender" style="flex-wrap:wrap"></div>
+    <div class="grid" id="letters"></div>
+  </section>
+
+  <section id="secLista">
+    <h2>Señas disponibles</h2>
+    <div class="chips" id="chips"></div>
+    <p class="hint">Azul = aprendida por ti (con × para borrar). Gris = fábrica reconocible.
+      Naranja punteado = hay que aprenderla con tu mano (5 flex no alcanzan).</p>
+    <div class="row"><button id="btnRefresh">Actualizar lista</button></div>
+  </section>
+
+  <section id="secDataset">
+    <h2>3. Recolectar dataset <span class="rec" id="tomaPill"></span></h2>
+    <div id="avisoDataset" class="sub"></div>
+    <div class="chips" id="clases" style="margin-top:10px"></div>
+    <div class="row">
+      <label class="chk">Segundos <input type="number" id="durToma" value="5" min="3" max="60"></label>
+      <label class="chk"><input type="checkbox" id="chkCrudo" checked> datos crudos 50 Hz</label>
+      <button class="primary" id="btnGrabar">Grabar (cuenta atrás 3 s)</button>
+      <button id="btnParar" disabled>Parar</button>
+    </div>
+    <div class="progress"><div id="prog"></div></div>
+    <div class="sub" id="instrGrab">Elige la clase y pulsa Grabar: forma la pose en la cuenta atrás y mantenla.</div>
+
+    <h2 style="margin-top:16px">Tomas de la sesión</h2>
+    <table>
+      <thead><tr><th>Clase</th><th>muestras</th><th>seg</th><th>Hz</th><th></th></tr></thead>
+      <tbody id="tablaTomas"></tbody>
+    </table>
+
+    <h2 style="margin-top:16px">Progreso del set <span style="text-transform:none;letter-spacing:0">(objetivo PLAN_DATASET §4.1)</span></h2>
+    <div id="objetivos"></div>
+
+    <div class="row">
+      <button class="primary" id="btnCsvClase">Descargar CSV por clase</button>
+      <button id="btnCsvUnico">CSV único</button>
+      <button id="btnBorrarTomas">Borrar todas</button>
+    </div>
+    <div class="sub" id="resumenExport"></div>
+    <p class="hint">Un CSV por clase (<code>REPOSO.csv</code>, <code>A.csv</code>…), 13 columnas y
+      timestamp relativo a partir de 0. Es el formato que Edge Impulse espera: subes los archivos
+      y etiqueta por nombre. Chrome puede preguntar «¿permitir descargar varios archivos?» → Permitir.</p>
+  </section>
+
+  <section>
+    <h2>Registro</h2>
+    <div id="log"></div>
+    <div class="row"><button id="btnClearLog">Vaciar registro</button></div>
+  </section>
+</main>
+
+<script>
+/* ============================================================================
+   Prueba del guante — versión corregida de "Prueba de Edwin.html"
+   ----------------------------------------------------------------------------
+   Qué cambia respecto al original (cada punto era un fallo real):
+
+   1. El listener de notificaciones se registra ANTES de startNotifications().
+      Antes se registraba después: el HELLO del guante (que sale justo al
+      suscribirse) se perdía y parecía que el guante "no respondía".
+   2. Diagnóstico de por qué no conecta: si la página se abrió con doble clic
+      (file://), Chrome no ofrece Web Bluetooth y se explica en un banner.
+   3. Si no aparece "GuanteLSP", se puede mostrar TODOS los dispositivos BLE
+      (muchos módulos ESP32 no meten el nombre en el paquete de advertising).
+   4. Los errores de conexión se traducen a algo accionable (el más típico:
+      NetworkError = el guante dejó de anunciarse → desenchufar y reenchufar).
+   5. Entiende los DOS firmwares: el crudo "X:" (11 canales) y el antiguo
+      "D:" (8 campos). Antes, con el crudo, la página no mostraba nada.
+   6. Panel de diagnóstico de los 5 flex con cuentas CRUDAS + resistencia
+      estimada + mín/máx/recorrido. Es lo que hace falta para decidir si el
+      problema es mecánico o eléctrico (ver DIAGNOSTICO_FLEX.md).
+   7. Lista F/R/C (fábrica / requiere aprendizaje / aprendida), chips de frases
+      para enseñar con LEARNO y corrector de frases deletreadas con el BOOT.
+   ============================================================================ */
+
+const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_RX      = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // navegador -> guante
+const NUS_TX      = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // guante -> navegador
+
+const DEDOS  = ['Pulgar','Índice','Medio','Anular','Meñique'];
+const COLORS = ['--c0','--c1','--c2','--c3','--c4'];
+const LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L','LL','M','N','Ñ','O','P','Q','R','RR','S','T','U','V','W','X','Y','Z'];
+const LETTER_SET = new Set(LETTERS);
+
+const VREF = 3.3, ADC_MAX = 4095, R_GND = 10000; // divisor: flex arriba, 10k a GND
+const UMBRAL_OK = 300;     // recorrido mínimo para decir "este dedo responde"
+const UMBRAL_FLOJO = 80;
+
+let device = null, rxChar = null, txChar = null, conectado = false;
+let texto = '', bufferRx = '', lista = [], cola = Promise.resolve();
+let simulado = false;
+let modo = null;                  // 'crudo' (X:) | 'antiguo' (D:) | null
+let crudo = [null,null,null,null,null];
+let minmaxCrudo = DEDOS.map(() => ({min:null, max:null}));
+let ultimoCrudoVisto = 0;
+let timerRaw = null;
+
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder(), dec = new TextDecoder();
+
+/* ------------------------------- UI base ------------------------------- */
+$('bars').innerHTML = DEDOS.map((n,i)=>
+  `<div class="bar"><span>${n}</span><div class="track"><div class="fill" id="f${i}" style="background:var(${COLORS[i]})"></div></div><span id="fv${i}">–</span></div>`).join('');
+
+$('letters').innerHTML = LETTERS.map(l=>`<button data-l="${l}">${l}</button>`).join('');
+$('letters').onclick = e => {
+  const l = e.target.dataset.l; if (!l) return;
+  $('signName').value = l;
+  document.querySelectorAll('#letters button').forEach(b=>b.classList.toggle('sel', b.dataset.l===l));
+};
+
+const FRASES_APRENDER = ['BUENOS DÍAS','¿CÓMO ESTÁS?','¿ESTÁS BIEN?','ADIÓS',
+                         'GRACIAS','POR FAVOR','NECESITO AYUDA'];
+$('frasesAprender').innerHTML = FRASES_APRENDER.map(f=>`<button data-frase="${f}">${f}</button>`).join('');
+$('frasesAprender').onclick = async e => {
+  const f = e.target.dataset.frase; if (!f) return;
+  if (!confirm(`¿Aprender "${f}" con la pose actual?`)) return;
+  await enviar('LEARNO:' + f);
+};
+
+$('tablaFlex').innerHTML = DEDOS.map((n,i)=>
+  `<tr><td style="color:var(${COLORS[i]})">${n}</td><td id="c${i}">–</td><td id="r${i}">–</td>`+
+  `<td id="n${i}">–</td><td id="x${i}">–</td><td id="d${i}">–</td><td class="est e-na" id="e${i}">–</td></tr>`).join('');
+
+function log(msg, tipo){
+  const el = $('log');
+  const d = document.createElement('div');
+  if (tipo) d.className = tipo;
+  const t = new Date().toLocaleTimeString('es', {hour12:false});
+  d.textContent = `[${t}] ${msg}`;
+  el.appendChild(d);
+  while (el.children.length > 300) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+function setConn(on){
+  conectado = on;
+  $('dot').className = 'dot' + (on ? ' on' : '');
+  $('status').textContent = on ? 'conectado a ' + (device?.name || 'guante') : 'desconectado';
+  $('btnConnect').disabled = on;
+  $('btnDisc').disabled = !on;
+}
+function renderText(){ $('text').textContent = texto || '…'; }
+renderText();
+
+/* -------------------------- aviso de file:// --------------------------- */
+function revisarEntorno(){
+  const esFile = location.protocol === 'file:';
+  const hayApi = !!navigator.bluetooth;
+  if (!hayApi){
+    const b = $('banner');
+    b.className = 'banner show';
+    b.innerHTML = esFile
+      ? '<b>Esta página está abierta como archivo (file://).</b> Chrome solo permite Bluetooth '+
+        'en <code>http://localhost</code> o <code>https</code>. Cierra esta pestaña y abre '+
+        '<b>abrir_prueba_edwin.bat</b> (o sirve la carpeta con un servidor local).'
+      : '<b>Este navegador no expone Web Bluetooth.</b> Usa Chrome o Edge de escritorio '+
+        '(no funciona en Firefox ni en Safari). En Windows, Chrome solo lo permite en '+
+        '<code>localhost</code> o <code>https</code>.';
+    log('Web Bluetooth no disponible' + (esFile ? ' (página abierta como archivo)' : ''), 'err');
+  } else if (location.protocol === 'http:' && !['localhost','127.0.0.1'].includes(location.hostname)){
+    const b = $('banner');
+    b.className = 'banner show';
+    b.innerHTML = '<b>Estás en un http:// que no es localhost.</b> Chrome exige contexto seguro '+
+      'para Bluetooth; desde una IP de la red no va a conectar.';
+  }
+}
+revisarEntorno();
+
+/* ------------------------------ conexión ------------------------------- */
+let conectando = false;      // evita dos intentos simultáneos (Chrome lanza InvalidStateError)
+let ultimoPaso = '';         // para saber EXACTAMENTE en qué paso falló
+let desconexionVoluntaria = false;
+
+// Traduce los errores de Web Bluetooth a algo que se pueda accionar.
+function explicar(e){
+  const n = e && e.name;
+  if (n === 'NotFoundError') return 'No se eligió ningún dispositivo (o el guante no está anunciándose).';
+  if (n === 'SecurityError' || n === 'NotAllowedError')
+    return 'Chrome bloqueó la petición: hace falta abrir la página en localhost/https y aceptar el permiso.';
+  if (n === 'NetworkError')
+    return 'El guante apareció en la lista pero no aceptó el enlace (o lo soltó enseguida).';
+  if (n === 'InvalidStateError') return 'Ya hay otra pestaña/programa conectado al guante. Ciérralo.';
+  if (n === 'NotSupportedError') return 'Este adaptador o sistema no soporta BLE.';
+  if (n === 'TypeError') return 'La petición necesita venir de un clic real del usuario.';
+  return e && e.message ? e.message : String(e);
+}
+
+function conTimeout(promesa, ms, mensaje){
+  return Promise.race([
+    promesa,
+    new Promise((_,rej) => setTimeout(() => rej(new Error(mensaje)), ms))
+  ]);
+}
+
+async function pedirDispositivo(){
+  const todos = $('verTodos') && $('verTodos').checked;
+  if (todos){
+    log('Mostrando TODOS los dispositivos BLE. Elige el que se llame GuanteLSP…');
+    return navigator.bluetooth.requestDevice({ acceptAllDevices:true, optionalServices:[NUS_SERVICE] });
+  }
+  return navigator.bluetooth.requestDevice({
+    filters: [{ namePrefix: 'GuanteLSP' }],
+    optionalServices: [NUS_SERVICE]
+  });
+}
+
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+
+function panel(titulo, cuerpoHtml, boton){
+  const b = $('banner');
+  b.className = 'banner show';
+  b.innerHTML = '<b>' + titulo + '</b><div style="margin:6px 0;line-height:1.55">' +
+                cuerpoHtml + '</div>';
+  if (boton){
+    const bt = document.createElement('button');
+    bt.className = 'primary';
+    bt.textContent = boton.texto;
+    bt.onclick = boton.accion;
+    b.appendChild(bt);
+  }
+  b.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function cerrarPanel(){ $('banner').className = 'banner'; }
+
+// Abre la sesión completa (enlace + servicios + notificaciones) con reintentos.
+// Se reintenta TODO, no solo gatt.connect(): en Windows es habitual que el
+// primer enlace se caiga justo al descubrir servicios y el segundo aguante.
+async function abrirSesion(){
+  let ultimo = null;
+  for (let intento = 1; intento <= 3; intento++){
+    try{
+      if (intento > 1){
+        log('Reintento ' + (intento - 1) + '/2 en 1,8 s…', 'warn');
+        await esperar(1800);
+        try { if (device.gatt.connected) device.gatt.disconnect(); } catch(_){}
+      }
+
+      ultimoPaso = 'conexión GATT';
+      const server = await conTimeout(device.gatt.connect(), 15000,
+        'El guante no respondió en 15 s (¿sin energía o reiniciándose?)');
+      log('GATT conectado.', 'ok');
+
+      // Un respiro para el periférico antes de pedirle la tabla de servicios.
+      await esperar(250);
+      if (!device.gatt.connected){
+        ultimoPaso = 'conexión GATT';
+        const e = new Error('el enlace se cayó justo después de conectar');
+        e.name = 'NetworkError';
+        throw e;
+      }
+
+      ultimoPaso = 'servicio NUS';
+      const svc = await conTimeout(server.getPrimaryService(NUS_SERVICE), 8000,
+        'El dispositivo no tiene el servicio del guante (¿elegiste otro BLE cercano?)');
+      txChar = await svc.getCharacteristic(NUS_TX);
+      rxChar = await svc.getCharacteristic(NUS_RX);
+      log('Servicio y características NUS encontrados.', 'ok');
+
+      // IMPORTANTE: escuchar antes de suscribirse (el HELLO sale al suscribirse).
+      txChar.addEventListener('characteristicvaluechanged', onData);
+      ultimoPaso = 'activar notificaciones';
+      await txChar.startNotifications();
+      log('Notificaciones activas.', 'ok');
+      return;
+
+    }catch(e){
+      ultimo = e;
+      log('Intento ' + intento + ' falló en «' + ultimoPaso + '»: ' +
+          (e.name || 'Error') + ' — ' + e.message, 'warn');
+      if (e.name === 'NotFoundError' || e.name === 'SecurityError') break;
+    }
+  }
+  throw ultimo;
+}
+
+async function conectar(mismoDispositivo){
+  if (!navigator.bluetooth){
+    revisarEntorno();
+    alert('Este navegador no ofrece Web Bluetooth.\n\nAbre la página en Chrome/Edge desde http://localhost (usa abrir_prueba_edwin.bat).');
+    return;
+  }
+  if (conectado || conectando) return;
+
+  conectando = true;
+  cerrarPanel();
+  try{
+    $('dot').className = 'dot wait';
+
+    if (!mismoDispositivo || !device){
+      $('status').textContent = 'buscando…';
+      ultimoPaso = 'selector de dispositivos';
+      log('Abriendo el selector de dispositivos…');
+      device = await pedirDispositivo();
+      log('Elegido: ' + (device.name || '(sin nombre)') + ' [' + device.id + ']', 'ok');
+      device.addEventListener('gattserverdisconnected', alDesconectar);
+    } else {
+      log('Reintentando con el mismo guante (' + (device.name || device.id) + ')…');
+    }
+
+    $('status').textContent = 'conectando…';
+    await abrirSesion();
+
+    setConn(true);
+    await enviar('PING');
+    await enviar('INFO');          // versión, Hz y estado del IMU en el registro
+    await enviar('LIST');
+    // Pedimos el flujo crudo de 11 canales (lo manda guante_dataset).
+    if ($('chkCrudo').checked) await enviar('RAWSTREAM:1');
+    arrancarRawAutomatico();
+    log('Conectado. Si en 3 s no aparece ninguna línea, el firmware no está transmitiendo.', 'ok');
+
+  }catch(e){
+    setConn(false);
+    $('status').textContent = 'desconectado';
+    log('✗ Falló en «' + ultimoPaso + '» · ' + (e.name || 'Error') + ': ' + (e.message || e), 'err');
+    log('   → ' + explicar(e), 'err');
+    console.error(e);
+
+    if (e && e.name === 'NotFoundError'){
+      panel('No apareció el guante',
+        'Si el guante está encendido y aun así no sale en la lista, <b>no está anunciándose</b>. '+
+        'Prueba: (1) desenchufa y vuelve a enchufar el ESP32; (2) marca «ver todos los BLE» y mira '+
+        'si <b>GuanteLSP</b> está en la lista. Si no está, es firmware o energía — no el navegador.',
+        {texto:'Reintentar', accion: ()=> conectar(false)});
+    } else if (e && e.name === 'NetworkError'){
+      panel('El guante conecta y se cae en el acto',
+        'El enlace se establece pero el ESP32 lo suelta antes de dar la lista de servicios. '+
+        'Eso casi nunca es el navegador. En orden de probabilidad:<br>'+
+        '1. <b>El ESP32 se reinicia al encender la radio</b> (pico de corriente). ¿Está alimentado por '+
+        'batería o por un cable fino? Pásalo a USB directo al PC y prueba.<br>'+
+        '2. <b>El firmware está en un estado raro</b>: reflashea <code>guante_dataset</code> '+
+        'y prueba otra vez.<br>'+
+        '3. <b>Caché GATT de Windows</b>: si el guante se conecta bien desde el celular (nRF Connect) '+
+        'pero no desde el PC, es el PC. Se arregla quitando el dispositivo en '+
+        'Configuración → Bluetooth, o desactivando y reactivando el adaptador Bluetooth.<br>'+
+        'Prueba A: abre el Monitor Serie a 115200 y conecta. Si vuelve a salir el cartel de arranque '+
+        '(<i>“Guante listo…”</i>), el ESP32 se está reiniciando → es energía.',
+        {texto:'Reintentar conexión', accion: ()=> conectar(true)});
+    }
+  } finally {
+    conectando = false;
+  }
+}
+
+function alDesconectar(){
+  const voluntaria = desconexionVoluntaria;
+  const estaba = conectado;
+  desconexionVoluntaria = false;
+  setConn(false);
+  pararRawAutomatico();
+  if (grabando) detenerToma(true);   // si se corta el enlace, cierra la toma en curso
+  modo = null;
+  if (typeof ajustarSecciones === 'function') ajustarSecciones(null);
+  $('modo').className = 'badge';
+  $('modo').textContent = 'sin firmware';
+  log('Guante desconectado.', 'warn');
+  if (!voluntaria && estaba){
+    panel('Se cortó la conexión con el guante',
+      'El enlace BLE se cayó solo. Casi siempre es energía (pico de la radio al transmitir) o el '+
+      'ESP32 reiniciándose. Revisa el cable/batería y pulsa Reconectar.',
+      {texto:'Reconectar', accion: ()=> conectar(true)});
+  }
+}
+
+function desconectar(){
+  desconexionVoluntaria = true;
+  if (device && device.gatt.connected) device.gatt.disconnect();
+  else { desconexionVoluntaria = false; setConn(false); }
+}
+
+function enviar(cmd){
+  if (!rxChar) return Promise.resolve();
+  const bytes = enc.encode(cmd + '\n');
+  cola = cola.then(async ()=>{
+    // 20 bytes es el trozo máximo por defecto; los comandos casi nunca pasan.
+    for (let i=0;i<bytes.length;i+=20) await rxChar.writeValue(bytes.slice(i,i+20));
+  }).catch(e => log('Error enviando "' + cmd + '": ' + e.message, 'err'));
+  return cola;
+}
+
+/* ------------------------- monitor de crudo ---------------------------- */
+function arrancarRawAutomatico(){
+  pararRawAutomatico();
+  timerRaw = setInterval(()=>{
+    if (!conectado || modo === 'crudo') return;   // el crudo ya llega por X:
+    if (!$('autoRaw').checked) return;
+    enviar('RAW');
+  }, 500);
+}
+function pararRawAutomatico(){
+  if (timerRaw){ clearInterval(timerRaw); timerRaw = null; }
+}
+
+/* ------------------------------ recepción ------------------------------ */
+function onData(ev){
+  bufferRx += dec.decode(ev.target.value, { stream: true });
+  let i;
+  while ((i = bufferRx.indexOf('\n')) >= 0){
+    const line = bufferRx.slice(0,i).trim();
+    bufferRx = bufferRx.slice(i+1);
+    if (line) procesar(line);
+  }
+}
+
+function procesar(line){
+  // El firmware simulado se identifica: avisar que las frases son fijas.
+  if (line.startsWith('HELLO:') && line.toUpperCase().includes(':SIM')){ marcarSimulado(); return; }
+  if (line.startsWith('INFO:guante_simulado')){ marcarSimulado(); return; }
+
+  if (line.startsWith('X:')){
+    const v = line.slice(2).split(',').map(Number);
+    if (v.length !== 11 || !v.every(Number.isFinite)) return;
+    marcarModo('crudo');
+    // X: 5 flex crudos + ax,ay,az,gx,gy,gz crudos
+    for (let k=0;k<5;k++) pintarBarra(k, v[k], Math.min(100, v[k]/ADC_MAX*100));
+    const [ax,ay,az,gx,gy,gz] = v.slice(5);
+    const roll  = Math.atan2(ay, az) * 57.2958;
+    const pitch = Math.atan2(-ax, Math.sqrt(ay*ay + az*az)) * 57.2958;
+    const gmag  = Math.sqrt(gx*gx + gy*gy + gz*gz) / 131;
+    $('roll').textContent = roll.toFixed(0);
+    $('pitch').textContent = pitch.toFixed(0);
+    $('gyro').textContent = gmag.toFixed(0);
+    actualizarFlex(v.slice(0,5));
+    // Grabación del dataset: una fila por muestra, con el índice delante.
+    if (grabando) grabando.rows.push([grabando.rows.length, ...v]);
+    return;
+  }
+
+  if (line.startsWith('R:')){
+    const v = line.slice(2).split(',').map(Number);
+    if (v.length !== 5 || !v.every(Number.isFinite)) return;
+    actualizarFlex(v);
+    return;
+  }
+
+  if (line.startsWith('D:')){
+    const v = line.slice(2).split(',').map(Number);
+    if (v.length < 8) return;
+    marcarModo('antiguo');
+    for (let k=0;k<5;k++) pintarBarra(k, v[k]+' %', v[k]);
+    $('roll').textContent = v[5];
+    $('pitch').textContent = v[6];
+    $('gyro').textContent = v[7];
+    return;
+  }
+
+  if (line.startsWith('S:')){ onSign(line.slice(2)); return; }
+
+  if (line.startsWith('L:')){
+    const raw = line.slice(2), p = raw.lastIndexOf('|');
+    const tipo = raw.slice(p+1);
+    lista.push({
+      name: raw.slice(0,p),
+      custom: tipo==='C',
+      requiere: tipo==='R'
+    });
+    return;
+  }
+  if (line === 'LEND'){ renderLista(); return; }
+
+  if (line.startsWith('ERR') && line.toUpperCase().indexOf('RAWSTREAM') >= 0){
+    log('Este firmware no entiende RAWSTREAM: no puede mandar los 11 canales crudos, ' +
+        'así que no sirve para grabar el dataset. Flashea firmware/guante_dataset.', 'err');
+    actualizarAvisoDataset();
+    return;
+  }
+
+  log(line);
+  if (line.startsWith('OK:LEARN') || line.startsWith('OK:DEL') || line.startsWith('OK:CLEAR')) refrescarLista();
+}
+
+/* Con el firmware de captura (crudo) no hay señas ni calibración: esas tarjetas
+   se ocultan en vez de quedarse vacías y parecer rotas. */
+function ajustarSecciones(m){
+  const crudo = (m === 'crudo');
+  ['secSenas', 'secCal', 'secAprender', 'secLista'].forEach(id => {
+    const el = $(id);
+    if (el) el.style.display = crudo ? 'none' : '';
+  });
+}
+
+function marcarModo(m){
+  if (modo === m) return;
+  modo = m;
+  const el = $('modo');
+  if (m === 'crudo'){
+    el.className = 'badge raw';
+    el.textContent = 'firmware crudo (X:)';
+    log('Firmware CRUDO detectado: 11 canales a 50 Hz. Sin calibración ni reconocimiento.', 'ok');
+    $('hintBarras').textContent = 'Firmware crudo: la barra es el ADC (0–4095) de cada flex. '+
+      'Mano abierta ≈ 1000–1300 cuentas; doblado al máximo debería bajar a ≈ 500–700.';
+  } else {
+    el.className = 'badge old';
+    el.textContent = 'firmware de señas (D:)';
+    log('Firmware de señas detectado: manda flexión en % y señas reconocidas.', 'ok');
+    $('hintBarras').textContent = 'Firmware de señas: barras = flexión en % (necesita calibración '+
+      'CAL_OPEN/CAL_FIST; sin calibrar se quedan pegadas en 0 o 100).';
+  }
+  if (m === 'crudo') pararRawAutomatico();
+  if (typeof ajustarSecciones === 'function') ajustarSecciones(m);
+  if (typeof actualizarAvisoDataset === 'function') actualizarAvisoDataset();
+}
+
+function marcarSimulado(){
+  if (simulado) return;
+  simulado = true;
+  const el = $('modo');
+  if (el){ el.className = 'badge sim'; el.textContent = 'SIMULADO (sin sensores)'; }
+  const hint = $('hintBarras');
+  if (hint) hint.textContent = 'Modo simulado: las barras NO reflejan sensores. '+
+    'El ESP32 manda S: con frases fijas cada pocos segundos; mover la mano no cambia nada.';
+  // No tiene sentido pedir RAW cada 500 ms a un firmware sin sensores: llenaría
+  // el registro de errores.
+  pararRawAutomatico();
+  const auto = $('autoRaw');
+  if (auto) auto.checked = false;
+  // Sin sensores, ocultar las tarjetas de flex/IMU/dataset/calibración: acá
+  // solo tiene sentido "Seña detectada" y el registro.
+  ['secVivo', 'secFlex', 'secDataset', 'secCal', 'secAprender', 'secLista']
+    .forEach(id => { const s = $(id); if (s) s.style.display = 'none'; });
+  log('Firmware simulado detectado: manda frases fijas y NO lee los sensores. '+
+      'Para reconocimiento por movimiento, flashear guante_senas (letras) o '+
+      'guante_dataset (captura para entrenar).', 'warn');
+}
+
+function pintarBarra(k, etiqueta, pct){
+  $('f'+k).style.width = Math.max(0, Math.min(100, pct)) + '%';
+  $('fv'+k).textContent = etiqueta;
+}
+
+/* ------------------------ diagnóstico de flex -------------------------- */
+function resistenciaK(cuentas){
+  const v = cuentas / ADC_MAX * VREF;
+  if (v <= 0.02) return Infinity;
+  if (v >= VREF - 0.02) return 0;
+  return R_GND * (VREF - v) / v / 1000;
+}
+
+function actualizarFlex(v5){
+  for (let k=0;k<5;k++){
+    const c = v5[k];
+    crudo[k] = c;
+    const mm = minmaxCrudo[k];
+    if (mm.min === null || c < mm.min) mm.min = c;
+    if (mm.max === null || c > mm.max) mm.max = c;
+    $('c'+k).textContent = c;
+    const r = resistenciaK(c);
+    $('r'+k).textContent = Number.isFinite(r) ? r.toFixed(1) : (r === 0 ? '0' : '∞');
+    $('n'+k).textContent = mm.min;
+    $('x'+k).textContent = mm.max;
+    const rec = mm.max === null ? 0 : mm.max - mm.min;
+    $('d'+k).textContent = rec;
+    const e = $('e'+k);
+    if (rec >= UMBRAL_OK){ e.className = 'est e-ok'; e.textContent = 'responde'; }
+    else if (rec >= UMBRAL_FLOJO){ e.className = 'est e-flojo'; e.textContent = 'flojo'; }
+    else { e.className = 'est e-muerto'; e.textContent = 'sin respuesta'; }
+  }
+  const recs = minmaxCrudo.map(m => m.max === null ? 0 : m.max - m.min);
+  const vivos = recs.filter(r => r >= UMBRAL_OK).length;
+  $('resumenFlex').textContent =
+    `${vivos}/5 dedos con recorrido útil (≥${UMBRAL_OK}). ` +
+    `Recorridos: ${recs.join(' · ')}. ` +
+    (vivos === 0 ? 'Ninguno responde: revisa el montaje antes de grabar el dataset.' : '');
+}
+
+function reiniciarMinMax(){
+  minmaxCrudo = DEDOS.map(() => ({min:null, max:null}));
+  for (let k=0;k<5;k++){
+    $('n'+k).textContent = '–'; $('x'+k).textContent = '–';
+    $('d'+k).textContent = '–';
+    $('e'+k).className = 'est e-na'; $('e'+k).textContent = '–';
+  }
+  $('resumenFlex').textContent = 'Mín/máx en cero. Ahora cierra el puño 3 veces y mira los recorridos.';
+  log('Mín/máx reiniciados.');
+}
+
+/* --------------------------- señas / texto ----------------------------- */
+// Mini corrector para frases deletreadas con el botón BOOT. La app tiene el
+// catálogo completo; acá dejamos los ejemplos que pediste.
+const FRASES_TEXTO = new Map([
+  ['BUENOSDIAS','BUENOS DÍAS'],
+  ['COMOESTAS','¿CÓMO ESTÁS?'],
+  ['ESTASBIEN','¿ESTÁS BIEN?'],
+  ['ADIOS','ADIÓS'],
+  ['PORFAVOR','POR FAVOR'],
+  ['ESTOYBIENGRACIAS','ESTOY BIEN, GRACIAS'],
+  ['NECESITOAYUDA','NECESITO AYUDA'],
+  ['LLAMENAUNMEDICO','LLAMEN A UN MÉDICO'],
+]);
+
+function normalizarUltimaFrase(){
+  const recorte = texto.replace(/\s+$/,'');
+  if (!recorte) return;
+  const palabras = recorte.split(' ');
+  for (let n = Math.min(5, palabras.length); n >= 1; n--){
+    const fragmento = palabras.slice(-n).join(' ');
+    const clave = fragmento.toUpperCase().normalize('NFD')
+      .replace(/[\u0300-\u036f]/g,'').replace(/[^A-ZÑ]/g,'');
+    const bonita = FRASES_TEXTO.get(clave);
+    if (bonita){
+      const resto = palabras.slice(0, palabras.length - n).join(' ');
+      texto = (resto ? resto + ' ' : '') + bonita;
+      return;
+    }
+  }
+}
+
+function onSign(raw){
+  // El firmware real manda "S:nombre" y el simulado "S:nombre|conf".
+  const partes = String(raw).split('|');
+  const nombre = (partes[0] || '').trim();
+  const conf = partes.length > 1 ? parseInt(partes[1], 10) : NaN;
+  if (!nombre) return;
+
+  const up = nombre.toUpperCase();
+  $('big').textContent = nombre;
+  $('big').title = Number.isFinite(conf) ? `Confianza ${conf}%` : '';
+
+  if (up === 'ESPACIO' || up === 'SPACE') {
+    normalizarUltimaFrase();
+    if (texto && !texto.endsWith(' ')) texto += ' ';
+  } else if (up === 'BORRAR' || up === 'BACKSPACE' || up === 'DEL') {
+    texto = texto.slice(0, -1);
+  } else if (up === 'LIMPIAR' || up === 'CLEAR') {
+    texto = '';
+  } else if (LETTER_SET.has(up)) {
+    texto += up;
+  } else {
+    texto += (texto && !texto.endsWith(' ') ? ' ' : '') + nombre + ' ';
+  }
+  renderText();
+}
+
+function refrescarLista(){ lista = []; enviar('LIST'); }
+
+function renderLista(){
+  $('chips').innerHTML = lista.map(s=>
+    `<span class="chip ${s.custom?'c':''} ${s.requiere?'r':''}" title="${s.requiere?'Requiere aprenderla con tu mano':''}">${s.name}${s.custom?` <b data-del="${s.name}" title="Borrar">×</b>`:''}</span>`).join('');
+  const set = new Set(lista.filter(s=>s.custom).map(s=>s.name));
+  document.querySelectorAll('#letters button').forEach(b=>b.classList.toggle('done', set.has(b.dataset.l)));
+}
+$('chips').onclick = e => { const n = e.target.dataset.del; if (n && confirm('¿Borrar "'+n+'"?')) enviar('DEL:'+n); };
+
+function hablar(){
+  if (!texto.trim()) return;
+  const u = new SpeechSynthesisUtterance(texto.trim());
+  const voces = speechSynthesis.getVoices();
+  const v = voces.find(v=>v.lang==='es-PE') || voces.find(v=>v.lang.startsWith('es'));
+  if (v) u.voice = v;
+  u.lang = v ? v.lang : 'es-ES';
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+
+/* ======================== CAPTURA DE DATASET =========================== */
+/* Misma lógica y mismo formato CSV que laboratorio.html (ya verificado):
+   un archivo por clase, 13 columnas, timestamp relativo uniforme.
+   Solo funciona con el firmware que manda los 11 canales crudos ("X:").   */
+
+const CLASES_DS   = ['REPOSO', 'A', 'E', 'I', 'O', 'U'];
+const OBJETIVOS   = { REPOSO: 150, A: 50, E: 50, I: 50, O: 50, U: 50 }; // segundos
+const CABECERA_CSV = 'timestamp,label,flex1,flex2,flex3,flex4,flex5,ax,ay,az,gx,gy,gz';
+
+let claseSel = 'REPOSO';
+let grabando = null;       // { label, dur, rows, t0, timer, prog }
+let tomas = [];            // [{ label, rows, hz, seg }]
+
+const fecha = () => new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+function cargarTomas(){
+  try { tomas = JSON.parse(localStorage.getItem('guante_tomas_edwin') || '[]'); }
+  catch(e){ tomas = []; }
+}
+function guardarTomas(){
+  try { localStorage.setItem('guante_tomas_edwin', JSON.stringify(tomas)); }
+  catch(e){ log('No se pudo guardar en el navegador (espacio): ' + e.message, 'warn'); }
+}
+cargarTomas();
+
+/* --- selector de clase --- */
+function renderClases(){
+  $('clases').innerHTML = CLASES_DS.map(c =>
+    `<button data-clase="${c}" class="${c === claseSel ? 'sel' : ''}">${c}</button>`).join('');
+}
+$('clases').onclick = e => {
+  const c = e.target.dataset.clase; if (!c) return;
+  claseSel = c; renderClases(); actualizarAvisoDataset();
+};
+
+/* --- aviso de estado: qué se puede grabar y qué no --- */
+function actualizarAvisoDataset(){
+  const av = $('avisoDataset'), btn = $('btnGrabar');
+  if (!conectado){
+    av.innerHTML = 'Conecta el guante para grabar.';
+    av.className = 'sub'; btn.disabled = true; return;
+  }
+  if (modo === 'crudo'){
+    av.innerHTML = '<b class="ok-txt">Listo para grabar:</b> llegan 11 canales crudos a 50 Hz. ' +
+      'Elige la clase, pulsa Grabar y forma la pose <b>antes</b> de que termine la cuenta atrás.';
+    av.className = 'sub'; btn.disabled = !!grabando; return;
+  }
+  if (modo === 'antiguo'){
+    av.innerHTML = '<b style="color:var(--err)">Este firmware no sirve para el dataset.</b> ' +
+      'Manda la flexión en % a 10 Hz (resolución 1 %), no los 11 canales crudos. ' +
+      'Flashea <code>firmware/guante_dataset</code> y recarga esta página.';
+    av.className = 'sub'; btn.disabled = true; return;
+  }
+  av.innerHTML = 'Conectado, esperando datos del guante…';
+  av.className = 'sub'; btn.disabled = true;
+}
+
+/* --- grabar una toma --- */
+async function iniciarToma(){
+  if (grabando) return;
+  if (!conectado){ alert('Conecta el guante primero.'); return; }
+  if (modo !== 'crudo'){
+    alert('Este firmware no manda los 11 canales crudos.\n\n' +
+          'Flashea firmware/guante_dataset y recarga la página.');
+    return;
+  }
+  const dur = Math.max(3, Math.min(120, parseInt($('durToma').value) || 5));
+  $('btnGrabar').disabled = true;
+
+  for (let s = 3; s > 0; s--){
+    $('instrGrab').textContent = `Toma «${claseSel}» en ${s}…`;
+    await esperar(1000);
+  }
+
+  grabando = { label: claseSel, dur, rows: [], t0: performance.now() };
+  $('tomaPill').textContent = '● REC';
+  $('btnParar').disabled = false;
+  $('instrGrab').textContent = `Grabando «${claseSel}» · ${dur} s`;
+  log(`Grabando «${claseSel}» durante ${dur} s…`);
+
+  grabando.timer = setTimeout(() => detenerToma(false), dur * 1000);
+  grabando.prog = setInterval(() => {
+    if (!grabando) return;
+    const pct = Math.min(100, (performance.now() - grabando.t0) / (dur * 1000) * 100);
+    $('prog').style.width = pct + '%';
+  }, 100);
+}
+
+function detenerToma(manual){
+  if (!grabando) return;
+  const g = grabando;
+  grabando = null;
+  clearTimeout(g.timer); clearInterval(g.prog);
+  $('prog').style.width = '0%';
+  $('tomaPill').textContent = '';
+  $('btnParar').disabled = true;
+  $('btnGrabar').disabled = false;
+
+  const rows = g.rows;
+  if (!rows.length){
+    $('instrGrab').textContent = 'No llegó ni una muestra: el guante no está mandando «X:».';
+    log('Toma vacía: 0 muestras.', 'err');
+    return;
+  }
+
+  // Hz real = muestras / tiempo realmente transcurrido (no la duración pedida:
+  // así una toma cortada con «Parar» no sale con una frecuencia falsa).
+  const seg = Math.max(0.5, (performance.now() - g.t0) / 1000);
+  const hz  = rows.length / seg;
+  tomas.push({ label: g.label, rows, hz, seg: +seg.toFixed(1) });
+  guardarTomas();
+  renderTomas();
+
+  $('instrGrab').textContent = `Guardada «${g.label}»: ${rows.length} muestras en ` +
+    `${seg.toFixed(1)} s (${hz.toFixed(1)} Hz).`;
+  log(`«${g.label}» guardada: ${rows.length} muestras, ${hz.toFixed(1)} Hz`, 'ok');
+
+  // --- avisos de calidad de la toma ---
+  const media = [0,1,2,3,4].map(i => rows.reduce((s, r) => s + r[i+1], 0) / rows.length);
+  const mov = [0,1,2,3,4].map(i => {
+    let mn = Infinity, mx = -Infinity;
+    for (const r of rows){ if (r[i+1] < mn) mn = r[i+1]; if (r[i+1] > mx) mx = r[i+1]; }
+    return mx - mn;
+  });
+
+  if (rows.every(r => r.slice(6).every(n => n === 0))){
+    log('El IMU llegó todo en cero: revisa el MPU6500 (SDA=21, SCL=22).', 'warn');
+  } else {
+    // Un IMU congelado no da ceros: repite el mismo valor en las 6 columnas
+    // (pasó: 252 muestras con -1286 fijo y el CSV parecía válido).
+    const imuIgual = rows.every(r =>
+      r[6] === rows[0][6] && r[7] === rows[0][7] && r[8] === rows[0][8] &&
+      r[9] === rows[0][9] && r[10] === rows[0][10] && r[11] === rows[0][11]);
+    if (imuIgual){
+      log(`El IMU está CONGELADO: las 6 columnas valen lo mismo en toda la toma ` +
+          `(${rows[0].slice(6).join(',')}). Esa toma no sirve para entrenar el IMU: ` +
+          'revisa el cableado o reflashea guante_dataset (se auto-recupera).', 'err');
+      $('instrGrab').textContent += ' ⚠ IMU congelado: repite la toma.';
+    }
+  }
+
+  if (g.label === 'REPOSO'){
+    const movidos = DEDOS.filter((_, i) => mov[i] > 300);
+    if (movidos.length){
+      log(`REPOSO: ${movidos.join(', ')} se movió más de 300 cuentas. ` +
+          'La mano debe estar abierta y quieta toda la toma.', 'warn');
+    }
+  } else {
+    const ref = tomas.filter(t => t.label === 'REPOSO').pop();
+    if (!ref){
+      log(`«${g.label}»: todavía no hay una toma de REPOSO con la que comparar. ` +
+          'Graba REPOSO primero para poder validar las poses.', 'warn');
+    } else {
+      const refMedia = [0,1,2,3,4].map(i => ref.rows.reduce((s, r) => s + r[i+1], 0) / ref.rows.length);
+      const dif = media.map((v, i) => Math.abs(v - refMedia[i]));
+      const distintos = DEDOS.filter((_, i) => dif[i] >= 150);
+      if (!distintos.length){
+        log(`«${g.label}» tiene los mismos valores que REPOSO (diferencia máx ` +
+            `${Math.max(...dif).toFixed(0)} cuentas). Esa pose no se va a poder distinguir: ` +
+            'revisa el montaje de los flex antes de seguir.', 'warn');
+      } else {
+        log(`«${g.label}» se distingue de REPOSO en ${distintos.join(', ')} ` +
+            `(${Math.max(...dif).toFixed(0)} cuentas de diferencia).`, 'ok');
+      }
+    }
+    // Comparar contra TODAS las demás clases ya grabadas: el error típico es que
+    // dos poses caigan casi en el mismo punto y nunca se note hasta entrenar.
+    for (const otra of CLASES_DS){
+      if (otra === g.label) continue;
+      const ts = tomas.filter(t => t.label === otra);
+      if (!ts.length) continue;
+      const m2 = [0,1,2,3,4].map(i =>
+        ts.reduce((s, t) => s + t.rows.reduce((a, r) => a + r[i+1], 0) / t.rows.length, 0) / ts.length);
+      const d = media.map((v, i) => Math.abs(v - m2[i])).reduce((a, b) => a + b, 0) / 5;
+      if (d < 100){
+        log(`⚠ «${g.label}» está a solo ${d.toFixed(0)} cuentas de «${otra}»: ` +
+            'esas dos poses se van a confundir. Sepáralas más (montaje) o no las uses juntas.', 'err');
+        $('instrGrab').textContent += ` ⚠ se parece a ${otra} (${d.toFixed(0)} cuentas).`;
+      }
+    }
+  }
+}
+
+/* --- tabla de tomas --- */
+function renderTomas(){
+  $('tablaTomas').innerHTML = tomas.map((t, i) =>
+    `<tr><td>${t.label}</td><td>${t.rows.length}</td><td>${t.seg}</td>` +
+    `<td>${t.hz.toFixed(1)}</td><td class="est"><b data-borrar="${i}" style="cursor:pointer;color:var(--err)">×</b></td></tr>`
+  ).join('') || '<tr><td colspan="5" style="color:var(--mut)">Sin tomas todavía.</td></tr>';
+  renderObjetivos();
+  actualizarAvisoDataset();
+}
+$('tablaTomas').onclick = e => {
+  const i = e.target.dataset.borrar;
+  if (i === undefined) return;
+  tomas.splice(+i, 1);
+  guardarTomas(); renderTomas();
+  log('Toma borrada.');
+};
+
+/* --- progreso contra los objetivos del PLAN_DATASET §4.1 --- */
+function renderObjetivos(){
+  $('objetivos').innerHTML = CLASES_DS.map(c => {
+    const hechos = tomas.filter(t => t.label === c).reduce((s, t) => s + t.seg, 0);
+    const obj = OBJETIVOS[c];
+    const pct = Math.min(100, hechos / obj * 100);
+    const listo = hechos >= obj;
+    return `<div class="objetivo"><span>${c}</span>` +
+      `<div class="track"><div class="fill" style="width:${pct}%;background:${listo ? 'var(--ok)' : 'var(--acc)'}"></div></div>` +
+      `<span style="text-align:right;color:${listo ? 'var(--ok)' : 'var(--mut)'}">` +
+      `${hechos.toFixed(0)}/${obj} s${listo ? ' ✓' : ''}</span></div>`;
+  }).join('');
+}
+
+/* --- exportación (idéntica al laboratorio) --- */
+function hzExport(){
+  if (!tomas.length) return 0;
+  const vals = tomas.map(t => t.hz).sort((a, b) => a - b);
+  const med = vals[Math.floor(vals.length / 2)];
+  const cinco = Math.round(med / 5) * 5;
+  return Math.abs(cinco - med) <= 1.5 ? cinco : Math.round(med);
+}
+
+function filasCsv(toma, label, hz, desde){
+  const dt = 1000 / hz;
+  const out = [];
+  let k = desde;
+  for (const r of toma.rows){
+    out.push(`${Math.round(k * dt)},${label},${r.slice(1).join(',')}`);
+    k++;
+  }
+  return { lineas: out, siguiente: k };
+}
+
+function descargar(nombre, texto){
+  const blob = new Blob([texto], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* Margen real entre clases frente al ruido. Es el número que decide si el modelo
+   va a generalizar o a memorizar el montaje de hoy. */
+function resumenSeparacion(){
+  const clases = [...new Set(tomas.map(t => t.label))];
+  if (clases.length < 2) return null;
+
+  const media = {}, ruido = {};
+  for (const c of clases){
+    const ts = tomas.filter(t => t.label === c);
+    media[c] = [0,1,2,3,4].map(i =>
+      ts.reduce((s, t) => s + t.rows.reduce((a, r) => a + r[i+1], 0) / t.rows.length, 0) / ts.length);
+    let suma = 0, n = 0;
+    for (const t of ts){
+      for (let i = 0; i < 5; i++){
+        const vals = t.rows.map(r => r[i+1]);
+        const m = vals.reduce((a,b)=>a+b,0) / vals.length;
+        const s2 = vals.reduce((a,b)=>a+(b-m)*(b-m),0) / vals.length;
+        suma += Math.sqrt(s2); n++;
+      }
+    }
+    ruido[c] = n ? suma / n : 0;
+  }
+
+  let min = Infinity, par = null;
+  for (let i = 0; i < clases.length; i++){
+    for (let j = i + 1; j < clases.length; j++){
+      const d = media[clases[i]].reduce((s, v, k) => s + Math.abs(v - media[clases[j]][k]), 0) / 5;
+      if (d < min){ min = d; par = [clases[i], clases[j]]; }
+    }
+  }
+
+  const ruidoMedio = Object.values(ruido).reduce((a,b)=>a+b,0) / clases.length;
+  const ratio = ruidoMedio > 0 ? min / ruidoMedio : Infinity;
+  const veredicto = ratio >= 8 ? 'buen margen' : (ratio >= 4 ? 'justo' : 'se van a confundir');
+  log(`Separación mínima entre clases: ${min.toFixed(0)} cuentas ` +
+      `(${par ? par.join(' vs ') : '—'}) · ruido ${ruidoMedio.toFixed(1)} ` +
+      `→ margen ${ratio.toFixed(1)}x · ${veredicto}.`, ratio >= 4 ? 'ok' : 'warn');
+  return { min, par, ruidoMedio, ratio };
+}
+
+function exportarPorClase(){
+  if (!tomas.length){ log('No hay tomas que exportar.', 'warn'); return; }
+  const hz = hzExport();
+  if (!hz){ log('No puedo calcular la frecuencia: repite la toma.', 'err'); return; }
+
+  const hzs = tomas.map(t => t.hz);
+  const hzMin = Math.min(...hzs), hzMax = Math.max(...hzs);
+  if (hzMax - hzMin > hzMax * 0.10){
+    log(`AVISO: las tomas no van a la misma frecuencia (${hzMin.toFixed(1)}–${hzMax.toFixed(1)} Hz). ` +
+        'Borra las viejas con «Borrar todas» y repite la sesión.', 'err');
+    return;
+  }
+
+  const porClase = new Map();
+  for (const t of tomas){
+    if (!porClase.has(t.label)) porClase.set(t.label, []);
+    porClase.get(t.label).push(t);
+  }
+
+  resumenSeparacion();   // margen entre clases vs ruido: el número que importa
+
+  const faltan = CLASES_DS.filter(c => !porClase.has(c));
+  if (faltan.length) log(`Faltan clases del set: ${faltan.join(', ')}.`, 'warn');
+
+  let n = 0, filas = 0;
+  for (const [label, lista] of porClase){
+    const lineas = [CABECERA_CSV];
+    let desde = 0;
+    for (const t of lista){ const r = filasCsv(t, label, hz, desde); lineas.push(...r.lineas); desde = r.siguiente; }
+    filas += lineas.length - 1;
+    const nombre = label.replace(/[^A-Za-z0-9_-]/g, '_') + '.csv';
+    setTimeout(() => descargar(nombre, lineas.join('\n')), n * 350);   // escalonadas: Chrome bloquea si salen juntas
+    n++;
+  }
+  $('resumenExport').textContent = `${n} CSV · ${filas} filas · ${hz} Hz. Declara ${hz} Hz en Edge Impulse.`;
+  log(`Exportados ${n} CSV (uno por clase), ${filas} filas a ${hz} Hz.`, 'ok');
+  if (Math.abs(hz - 50) > 2){
+    log(`Ojo: la sesión salió a ${hz} Hz y no a 50. Declara ${hz} Hz en Edge Impulse ` +
+        '(si declaras 50 con datos a ' + hz + ', las ventanas de 1 s quedan mal medidas).', 'warn');
+  }
+}
+
+function exportarUnico(){
+  if (!tomas.length){ log('No hay tomas que exportar.', 'warn'); return; }
+  const hz = hzExport();
+  const lineas = [CABECERA_CSV];
+  let desde = 0;
+  for (const t of tomas){ const r = filasCsv(t, t.label, hz, desde); lineas.push(...r.lineas); desde = r.siguiente; }
+  descargar('dataset_guante_' + fecha() + '.csv', lineas.join('\n'));
+  $('resumenExport').textContent = `CSV único: ${lineas.length - 1} filas a ${hz} Hz.`;
+  log(`CSV único exportado: ${lineas.length - 1} filas, 11 canales, ${hz} Hz.`, 'ok');
+}
+
+/* --- enganches de la sección --- */
+$('chkCrudo').onchange = () => {
+  const on = $('chkCrudo').checked;
+  enviar('RAWSTREAM:' + (on ? 1 : 0));
+  log(on ? 'Pidiendo el flujo crudo de 11 canales…'
+         : 'Volviendo al flujo antiguo (D:): la grabación de dataset queda desactivada.');
+  if (!on){ modo = 'antiguo'; actualizarAvisoDataset(); }
+};
+$('btnGrabar').onclick    = iniciarToma;
+$('btnParar').onclick     = () => detenerToma(true);
+$('btnCsvClase').onclick  = exportarPorClase;
+$('btnCsvUnico').onclick  = exportarUnico;
+$('btnBorrarTomas').onclick = () => {
+  if (!tomas.length) return;
+  if (confirm(`¿Borrar las ${tomas.length} tomas de esta sesión? No se puede deshacer.`)){
+    tomas = []; guardarTomas(); renderTomas();
+    $('resumenExport').textContent = '';
+    log('Tomas borradas.');
+  }
+};
+
+renderClases();
+renderTomas();
+
+/* ------------------------------- botones ------------------------------- */
+$('btnConnect').onclick = conectar;
+$('btnDisc').onclick   = desconectar;
+$('btnReset').onclick  = reiniciarMinMax;
+$('btnRaw').onclick    = ()=>{ log('Pidiendo RAW…'); enviar('RAW'); };
+$('btnSpace').onclick  = ()=>{ texto += ' '; renderText(); };
+$('btnBack').onclick   = ()=>{ texto = texto.slice(0,-1); renderText(); };
+$('btnClear').onclick  = ()=>{ texto = ''; $('big').textContent = '—'; renderText(); };
+$('btnSpeak').onclick  = hablar;
+$('btnOpen').onclick   = ()=>{ enviar('CAL_OPEN'); };
+$('btnFist').onclick   = ()=>{ enviar('CAL_FIST'); };
+$('btnRefresh').onclick = refrescarLista;
+$('btnClearLog').onclick = ()=>{ $('log').innerHTML = ''; };
+
+$('btnLearn').onclick = async ()=>{
+  const nombre = $('signName').value.trim();
+  if (!nombre){ alert('Escribe el nombre de la seña'); return; }
+  if (!rxChar){ alert('Conecta el guante primero'); return; }
+  if (modo === 'crudo'){ alert('El firmware crudo no aprende señas. Flashea guante_senas para eso.'); return; }
+  const b = $('btnLearn'); b.disabled = true;
+  for (let s=3; s>0; s--){ b.textContent = `Haz la seña… ${s}`; await new Promise(r=>setTimeout(r,1000)); }
+  b.textContent = 'Guardando…';
+  await enviar(($('useOri').checked ? 'LEARNO:' : 'LEARN:') + nombre);
+  setTimeout(()=>{ b.disabled = false; b.textContent = 'Guardar seña (cuenta atrás 3 s)'; }, 1200);
+};
+
+/* «ver todos» se inyecta aquí para no tocar el HTML del header */
+const chk = document.createElement('label');
+chk.className = 'chk';
+chk.innerHTML = '<input type="checkbox" id="verTodos"> ver todos los BLE';
+document.querySelector('header').insertBefore(chk, $('btnConnect'));
+
+// Si al arrancar la API no está, no tiene sentido dejar el botón vivo.
+if (!navigator.bluetooth && location.protocol === 'file:'){
+  $('btnConnect').disabled = true;
+  $('btnConnect').textContent = 'Conectar (abre con el .bat)';
+}
+</script>
+</body>
+</html>

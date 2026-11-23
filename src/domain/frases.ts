@@ -26,24 +26,6 @@ export interface Frase {
   alias?: readonly string[];
 }
 
-export const CATEGORIAS: readonly CategoriaFrase[] = [
-  'saludo',
-  'pregunta',
-  'respuesta',
-  'despedida',
-  'cortesia',
-  'ayuda',
-];
-
-export const ETIQUETAS_CATEGORIA: Record<CategoriaFrase, string> = {
-  saludo: 'Saludos',
-  pregunta: 'Preguntas',
-  respuesta: 'Respuestas',
-  despedida: 'Despedidas',
-  cortesia: 'Cortesía',
-  ayuda: 'Ayuda',
-};
-
 export const FRASES: readonly Frase[] = [
   // Saludos
   { id: 'hola', texto: 'HOLA', categoria: 'saludo' },
@@ -100,10 +82,6 @@ export const FRASES: readonly Frase[] = [
   { id: 'no-puedo-hablar', texto: 'NO PUEDO HABLAR', categoria: 'ayuda' },
 ];
 
-export const FRASES_POR_ID: ReadonlyMap<string, Frase> = new Map(
-  FRASES.map((f) => [f.id, f]),
-);
-
 /** Equivalencias sin tildes. Evita depender de String.normalize en Hermes. */
 const SIN_TILDE: Record<string, string> = {
   Á: 'A',
@@ -142,10 +120,6 @@ const INDICE_FRASES: ReadonlyMap<string, Frase> = (() => {
 /** Devuelve la frase del catálogo que coincide exactamente (sin tildes/signos). */
 export function buscarFraseExacta(texto: string): Frase | null {
   return INDICE_FRASES.get(normalizarTexto(texto)) ?? null;
-}
-
-export function frasePorId(id: string): Frase | null {
-  return FRASES_POR_ID.get(id) ?? null;
 }
 
 /**
@@ -238,38 +212,3 @@ export function completarConFrase(texto: string, frase: Frase): string {
   const prefijo = inicioUltima > 0 ? texto.slice(0, inicioUltima) : '';
   return `${prefijo}${frase.texto} `;
 }
-
-/** Agrega una frase completa al final, sin duplicar el espacio separador. */
-export function agregarFrase(texto: string, frase: Frase): string {
-  const base = texto.replace(/\s+$/, '');
-  return `${base ? `${base} ` : ''}${frase.texto} `;
-}
-
-export interface Guion {
-  id: string;
-  titulo: string;
-  descripcion: string;
-  /** Ids de `FRASES`, en el orden en que se van a "deletrear". */
-  frases: readonly string[];
-}
-
-export const GUIONES: readonly Guion[] = [
-  {
-    id: 'saludo',
-    titulo: 'Saludo',
-    descripcion: 'Buenos días → ¿Cómo estás? → ¿Estás bien?',
-    frases: ['buenos-dias', 'como-estas', 'estas-bien'],
-  },
-  {
-    id: 'conversacion',
-    titulo: 'Conversación',
-    descripcion: 'Saludo, respuesta y despedida',
-    frases: ['hola', 'como-estas', 'estoy-bien-gracias', 'adios'],
-  },
-  {
-    id: 'ayuda',
-    titulo: 'Pedir ayuda',
-    descripcion: 'Frases de emergencia',
-    frases: ['necesito-ayuda', 'llamen-medico', 'tengo-dolor'],
-  },
-];

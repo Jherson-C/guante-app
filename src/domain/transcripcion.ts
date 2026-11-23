@@ -1,6 +1,5 @@
 /**
- * Operaciones puras sobre el texto transcrito. Se usan tanto en la sesión
- * BLE como en el modo práctica, para que las dos etapas se comporten igual.
+ * Operaciones puras sobre el texto transcrito (espacio y borrado).
  */
 
 import { buscarFraseExacta, type Frase } from './frases';
@@ -56,12 +55,6 @@ function normalizarSufijos(texto: string): string {
   return `${prefijoLimpio ? normalizarSufijos(prefijoLimpio) : ''}${separador}${
     encontrada.frase.texto
   }`;
-}
-
-/** Agrega una letra o signo. Las letras se guardan en mayúsculas. */
-export function aplicarLetra(texto: string, letra: string): string {
-  if (!letra) return texto;
-  return texto + letra.toUpperCase();
 }
 
 /**

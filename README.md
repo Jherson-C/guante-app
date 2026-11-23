@@ -10,7 +10,7 @@ Hecha con [Expo](https://expo.dev) (SDK 58), React Native y Expo Router.
 - **Dos guantes a la vez:** el derecho y el izquierdo escriben en el mismo texto.
 - **Base giratoria:** la app le manda órdenes de giro por Bluetooth.
 - **Editor con sugerencias:** completa frases del catálogo con tildes y signos.
-- **Modo práctica:** prueba el abecedario, frases y guiones de conversación sin ningún hardware.
+- **Entrenamiento del guante:** se hace desde la página web `Entrenando Guante.html` (ver abajo).
 - **Privacidad:** el texto vive solo en memoria y se pierde al cerrar la app. No se guarda audio ni texto.
 
 ## Hardware
@@ -63,7 +63,19 @@ npx eas-cli@latest build --profile development --platform android
 
 Instala el APK que genera EAS en el teléfono y luego ejecuta `npx expo start`.
 
-Para probar sin hardware, abre la app y entra en **Modo práctica**. También funciona en la web (`npx expo start --web`).
+En la web (`npx expo start --web`) no hay Bluetooth: solo se puede ver la pantalla de conversación con datos de demostración.
+
+## Entrenar el guante
+
+El entrenamiento se hace desde la PC con [Entrenando Guante.html](Entrenando%20Guante.html), que se conecta a un guante por Web Bluetooth. Desde ahí se calibra la mano (abierta y puño), se aprenden letras y frases nuevas (`LEARN` / `LEARNO`), se borran y se listan las señas, y se ven los sensores en vivo.
+
+Chrome solo permite Bluetooth en `localhost` o `https`, así que la página no funciona abriéndola con doble clic. Hay que servirla desde la carpeta del proyecto:
+
+```bash
+python -m http.server 8000
+```
+
+Luego abre `http://localhost:8000/Entrenando%20Guante.html` en **Chrome o Edge de escritorio** (Firefox y Safari no tienen Web Bluetooth). Entrena un guante a la vez; la página reconoce los dos nombres (`GuanteLSP-D` y `GuanteLSP-I`).
 
 ## Probar con el hardware
 
@@ -82,15 +94,15 @@ src/
     index.tsx         Conexión de los 3 dispositivos
     conversacion.tsx  Conversación de dos vías
     session.tsx       Editor con sugerencias
-    practica.tsx      Modo práctica sin hardware
   ble/          Cliente Bluetooth y protocolo
-  hooks/        Estado del guante, voz, turnos, práctica
-  domain/       Abecedario, frases y edición del texto
+  hooks/        Estado del guante, voz y turnos
+  domain/       Frases y edición del texto
   components/   Componentes visuales
   constants/    Tema y etiquetas de estado
 guante_estatico/       Firmware de los guantes (ESP32)
 base_giratoria/        Base con Arduino UNO + HM-10
 base_giratoria_esp32/  Base alternativa con ESP32
+Entrenando Guante.html Entrenamiento y diagnóstico del guante (Web Bluetooth)
 ```
 
 ## Comandos útiles

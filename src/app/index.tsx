@@ -281,9 +281,9 @@ export default function Conexion() {
             <View style={styles.acciones}>
               {!esAndroid ? (
                 <BotonPrimario
-                  etiqueta="Abrir modo práctica"
-                  descripcion="Abrir el modo práctica"
-                  alPresionar={() => router.push('/practica')}
+                  etiqueta="Ver conversación (demo)"
+                  descripcion="Ver la pantalla de conversación con datos de demostración"
+                  alPresionar={() => router.push('/conversacion')}
                 />
               ) : activo ? (
                 <BotonPrimario
@@ -301,16 +301,6 @@ export default function Conexion() {
               )}
 
               <View style={styles.secundarias}>
-                {!esAndroid ? (
-                  <Pressable
-                    onPress={() => router.push('/conversacion')}
-                    style={styles.secundario}
-                    accessibilityRole="button"
-                    accessibilityLabel="Ver la pantalla de conversación con datos de demostración"
-                  >
-                    <Text style={styles.secundarioTexto}>Ver conversación (demo)</Text>
-                  </Pressable>
-                ) : null}
                 {esAndroid && !activo ? (
                   <Pressable
                     onPress={() => router.push('/conversacion')}
@@ -319,16 +309,6 @@ export default function Conexion() {
                     accessibilityLabel="Conversar usando solo la voz, sin guante"
                   >
                     <Text style={styles.secundarioTexto}>Solo voz</Text>
-                  </Pressable>
-                ) : null}
-                {esAndroid ? (
-                  <Pressable
-                    onPress={() => router.push('/practica')}
-                    style={styles.secundario}
-                    accessibilityRole="button"
-                    accessibilityLabel="Probar la app sin guante en modo práctica"
-                  >
-                    <Text style={styles.secundarioTexto}>Modo práctica</Text>
                   </Pressable>
                 ) : null}
                 {esAndroid && fase !== 'inicial' && fase !== 'ble-no-disponible' ? (
@@ -348,8 +328,7 @@ export default function Conexion() {
 
             {!esAndroid ? (
               <Text style={styles.ayuda}>
-                En el navegador no hay Bluetooth. Para conectar el guante usa el APK en Android; el
-                modo práctica funciona sin guante.
+                En el navegador no hay Bluetooth. Para conectar los guantes usa el APK en Android.
               </Text>
             ) : null}
           </View>

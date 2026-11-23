@@ -184,7 +184,7 @@ export function GuanteProvider({ children }: PropsWithChildren) {
         ponerFase(
           id,
           'ble-no-disponible',
-          'La conexión BLE solo está disponible en Android. En web usá el modo práctica o prueba_edwin.html.',
+          'La conexión BLE solo está disponible en Android. En web no hay Bluetooth.',
         );
         return null;
       }

@@ -1,6 +1,5 @@
 /**
- * Fila de sugerencias de frases. Se usa en la sesión real y en el modo
- * práctica: el motor de `domain/frases` no sabe de dónde viene el texto.
+ * Fila de sugerencias de frases del editor (motor en `domain/frases`).
  */
 
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
