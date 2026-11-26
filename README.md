@@ -93,7 +93,7 @@ Cada dispositivo tiene su propio botón **Conectar / Desconectar** por si uno fa
 
 ### La base busca a la persona sorda
 
-La cámara USB va pegada arriba del teléfono, sobre la base, y su cable va a la laptop. La base barre de 0° a 180° parando para mirar; la persona que levanta las dos manos a la altura de la cara (como un mimo) queda elegida y la base la sigue. Solo lo que firma esa persona va al teléfono. Cuando el oyente habla, la app manda `T:OYENTE` y la base gira hacia él; al terminar la frase manda `T:SORDO` y vuelve a la persona sorda. Si la persona sorda no aparece por 5 s, la base vuelve a buscar.
+La cámara USB va pegada arriba del teléfono, sobre la base, y su cable va al Arduino UNO Q por un hub USB-C con carga (deja el cable flojo para que la base gire 180°). [cerebro.service](cerebro/cerebro.service) arranca el cerebro con `--camara`, así que no hace falta la laptop. El micrófono (el del teléfono, o uno USB enchufado al teléfono con OTG) lo usa la app. La base barre de 0° a 180° parando para mirar; la persona que levanta las dos manos a la altura de la cara (como un mimo) queda elegida y la base la sigue. Solo lo que firma esa persona va al teléfono. Cuando el oyente habla, la app manda `T:OYENTE` y la base gira hacia él; al terminar la frase manda `T:SORDO` y vuelve a la persona sorda. Si la persona sorda no aparece por 5 s, la base vuelve a buscar.
 
 Los ajustes están al principio de la clase `Base`, en [cerebro/cerebro.py](cerebro/cerebro.py). Si al seguir una cara la base se aleja en vez de centrarla, cambia `SENTIDO_BASE` a `-1`.
 

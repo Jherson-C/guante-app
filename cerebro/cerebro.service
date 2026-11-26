@@ -7,8 +7,9 @@ After=bluetooth.target
 
 [Service]
 WorkingDirectory=/home/arduino/cerebro
-# ~/venv312 (Python 3.12): mediapipe 1.x no corre en esta placa. Sin nada: cámara en la PC (camara-pc); --camara: cámara en la placa.
-ExecStart=/home/arduino/venv312/bin/python -u cerebro.py vivo
+# ~/venv312 (Python 3.12): mediapipe 1.x no corre en esta placa. --camara: la cámara USB de la base va enchufada
+# a la placa (hub USB-C con carga). Para usar la cámara de la laptop (camara-pc), quitar --camara.
+ExecStart=/home/arduino/venv312/bin/python -u cerebro.py vivo --camara
 # Si algo falla se cierra; reintenta solo.
 Restart=always
 RestartSec=10
