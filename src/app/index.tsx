@@ -129,11 +129,13 @@ function BotonPrimario({
   alPresionar,
   deshabilitado,
   descripcion,
+  compacto,
 }: {
   etiqueta: string;
   alPresionar: () => void;
   deshabilitado?: boolean;
   descripcion: string;
+  compacto: boolean;
 }) {
   const rebote = useRebote();
   return (
@@ -145,7 +147,7 @@ function BotonPrimario({
       accessibilityRole="button"
       accessibilityLabel={descripcion}
       accessibilityState={{ disabled: deshabilitado }}
-      style={[styles.primario, deshabilitado && styles.primarioApagado, rebote.estilo]}
+      style={[styles.primario, compacto && styles.primarioCompacto, deshabilitado && styles.primarioApagado, rebote.estilo]}
     >
       <Text style={styles.primarioTexto}>{etiqueta}</Text>
     </AnimadoPressable>
@@ -154,8 +156,8 @@ function BotonPrimario({
 
 const OCUPADO = ['verificando', 'escaneando', 'conectando', 'conectado', 'reconectando'];
 
-/** Estado y acción de cada uno de los 3 dispositivos (2 guantes + base). */
-function ListaDispositivos() {
+/** Estado y acción del cerebro (guantes + base). */
+function ListaDispositivos({ compacto }: { compacto: boolean }) {
   const { dispositivos, conectarDispositivo, desconectarDispositivo, enviarBase } = useGuante();
   return (
     <View style={styles.dispositivos}>
@@ -165,7 +167,7 @@ function ListaDispositivos() {
         const enUso = fase === 'operativo' || OCUPADO.includes(fase);
         const estadoTexto = fase === 'operativo' ? 'Listo' : ETIQUETAS_CORTAS[fase];
         return (
-          <Cristal key={id} style={styles.dispositivo}>
+          <Cristal key={id} style={[styles.dispositivo, compacto && styles.dispositivoCompacto]}>
             <View
               style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]}
               accessible
@@ -186,8 +188,8 @@ function ListaDispositivos() {
           </Cristal>
         );
       })}
-      {dispositivos.base.fase === 'operativo' ? (
-        // Prueba manual de la base: G:<grados> (protocolo en src/ble/protocol.ts).
+      {dispositivos.guantes.fase === 'operativo' ? (
+        // Prueba manual de la base (servo en el cerebro): G:<grados>, ver src/ble/protocol.ts.
         <View style={styles.secundarias}>
           {([['Izquierda', 0], ['Centro', 90], ['Derecha', 180]] as const).map(([etiqueta, grados]) => (
             <Pressable
@@ -211,6 +213,8 @@ export default function Conexion() {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const horizontal = width > height;
+  // Celular acostado: poca altura, así que todo se achica para entrar sin desplazar.
+  const compacto = horizontal && height < 450;
   const esAndroid = Platform.OS === 'android';
 
   const buscando =
@@ -258,14 +262,14 @@ export default function Conexion() {
             </Cristal>
           </View>
 
-          <View style={[styles.texto, horizontal && styles.textoHorizontal]}>
-            <Text style={[styles.titulo, { fontSize: horizontal ? 32 : 38 }]}>
-              {activo ? 'Guante listo' : 'Conecta tus guantes'}
+          <View style={[styles.texto, horizontal && styles.textoHorizontal, compacto && styles.textoCompacto]}>
+            <Text style={[styles.titulo, { fontSize: compacto ? 26 : horizontal ? 32 : 38 }]}>
+              {activo ? 'Placa lista' : 'Conecta la placa'}
             </Text>
-            <Text style={styles.bajada}>
+            <Text style={[styles.bajada, compacto && styles.bajadaCompacta]}>
               {activo
                 ? 'Ya puedes conversar: lo que firmes y lo que diga la otra persona aparecerán juntos en una sola pantalla.'
-                : 'Enciende los guantes y la base giratoria y mantenlos a menos de un metro del teléfono.'}
+                : 'Enciende la placa y mantenla a menos de un metro del teléfono. La cámara va en la laptop conectada a la placa.'}
             </Text>
             {!activo && esAndroid && !horizontal ? (
               <Text style={styles.ayuda}>
@@ -276,25 +280,28 @@ export default function Conexion() {
             {simulado ? (
               <Text style={styles.simulado}>Firmware de demostración: datos simulados</Text>
             ) : null}
-            {esAndroid ? <ListaDispositivos /> : null}
+            {esAndroid ? <ListaDispositivos compacto={compacto} /> : null}
 
-            <View style={styles.acciones}>
+            <View style={[styles.acciones, compacto && styles.accionesCompactas]}>
               {!esAndroid ? (
                 <BotonPrimario
+                  compacto={compacto}
                   etiqueta="Ver conversación (demo)"
                   descripcion="Ver la pantalla de conversación con datos de demostración"
                   alPresionar={() => router.push('/conversacion')}
                 />
               ) : activo ? (
                 <BotonPrimario
+                  compacto={compacto}
                   etiqueta="Iniciar conversación"
                   descripcion="Abrir la conversación de dos vías"
                   alPresionar={() => router.push('/conversacion')}
                 />
               ) : (
                 <BotonPrimario
+                  compacto={compacto}
                   etiqueta={etiquetaConectar}
-                  descripcion="Conectar los guantes y la base por Bluetooth"
+                  descripcion="Conectar la placa y la base giratoria por Bluetooth"
                   deshabilitado={buscando}
                   alPresionar={conectar}
                 />
@@ -306,7 +313,7 @@ export default function Conexion() {
                     onPress={() => router.push('/conversacion')}
                     style={styles.secundario}
                     accessibilityRole="button"
-                    accessibilityLabel="Conversar usando solo la voz, sin guante"
+                    accessibilityLabel="Conversar usando solo la voz, sin señas"
                   >
                     <Text style={styles.secundarioTexto}>Solo voz</Text>
                   </Pressable>
@@ -333,11 +340,6 @@ export default function Conexion() {
             ) : null}
           </View>
         </View>
-
-        <Text style={styles.privacidad}>
-          El texto vive solo en la memoria del teléfono y se pierde al cerrar la app. La app no
-          guarda audio ni texto; el reconocimiento de voz lo procesa Android.
-        </Text>
       </ScrollView>
     </View>
   );
@@ -406,6 +408,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-start',
   },
+  textoCompacto: {
+    gap: 8,
+  },
   titulo: {
     fontFamily: FUENTE.display,
     color: COLOR.texto,
@@ -416,6 +421,10 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
     color: COLOR.texto,
+  },
+  bajadaCompacta: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   ayuda: {
     fontFamily: FUENTE.normal,
@@ -450,6 +459,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 10,
   },
+  primarioCompacto: {
+    paddingVertical: 12,
+  },
   primarioApagado: {
     opacity: 0.45,
   },
@@ -471,6 +483,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
   },
+  dispositivoCompacto: {
+    paddingVertical: 8,
+  },
   dispositivoNombre: {
     flex: 1,
     fontFamily: FUENTE.negrita,
@@ -481,6 +496,10 @@ const styles = StyleSheet.create({
     fontFamily: FUENTE.normal,
     fontSize: 13,
     color: COLOR.suave,
+  },
+  accionesCompactas: {
+    gap: 6,
+    marginTop: 4,
   },
   secundarias: {
     flexDirection: 'row',
@@ -499,14 +518,5 @@ const styles = StyleSheet.create({
     fontFamily: FUENTE.negrita,
     fontSize: 14,
     color: COLOR.suave,
-  },
-  privacidad: {
-    fontFamily: FUENTE.normal,
-    fontSize: 11,
-    lineHeight: 16,
-    color: COLOR.tenue,
-    textAlign: 'center',
-    alignSelf: 'center',
-    maxWidth: 560,
   },
 });

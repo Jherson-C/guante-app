@@ -1,0 +1,17 @@
+# Arranca el cerebro al prender la placa. Instalar (en la placa):
+#   cp ~/cerebro/cerebro.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now cerebro
+[Unit]
+Description=Cerebro del Traductor de Señas
+After=bluetooth.target
+
+[Service]
+WorkingDirectory=/home/arduino/cerebro
+# ~/venv312 (Python 3.12): mediapipe 1.x no corre en esta placa. Sin nada: cámara en la PC (camara-pc); --camara: cámara en la placa.
+ExecStart=/home/arduino/venv312/bin/python -u cerebro.py vivo
+# Si algo falla se cierra; reintenta solo.
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

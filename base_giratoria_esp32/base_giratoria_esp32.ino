@@ -31,8 +31,14 @@
 #define CHAR_UUID "0000ffe1-0000-1000-8000-00805f9b34fb"
 #define SERVO_PIN 13
 #define ANGULO_INICIAL 90
+// Giro suave: 1 grado cada PASO_MS (180° en ~1.4 s). Un salto directo con el
+// MG996R lanza el teléfono de la base y da un pico de corriente.
+#define PASO_MS 8
 
 Servo servo;
+int anguloActual = ANGULO_INICIAL;
+int anguloObjetivo = ANGULO_INICIAL;
+unsigned long ultimoPaso = 0;
 BLECharacteristic* ch = nullptr;
 volatile bool reanunciar = false;
 String rxBuf = "";
@@ -57,7 +63,7 @@ void procesar(String cmd) {
       return;
     }
     int grados = constrain(num.toInt(), 0, 180);
-    servo.write(grados);
+    anguloObjetivo = grados;  // loop() lo alcanza de a poco
     responder("OK:G:" + String(grados));
   } else if (cmd.length() > 0) {
     responder("ERR:comando desconocido");
@@ -110,7 +116,16 @@ void setup() {
   Serial.println("Base giratoria (ESP32) lista. Esperando la app...");
 }
 
+// Avanza un grado hacia el objetivo sin bloquear: el BLE se sigue leyendo.
+void moverServo() {
+  if (anguloActual == anguloObjetivo || millis() - ultimoPaso < PASO_MS) return;
+  ultimoPaso = millis();
+  anguloActual += (anguloObjetivo > anguloActual) ? 1 : -1;
+  servo.write(anguloActual);
+}
+
 void loop() {
+  moverServo();
   if (pendiente.length() > 0) {
     String cmd = pendiente;
     pendiente = "";

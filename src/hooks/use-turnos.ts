@@ -24,7 +24,7 @@ export interface Turno {
 }
 
 const MAX_TURNOS = 40;
-const PAUSA_GUANTE_MS = 3200;
+const PAUSA_GUANTE_MS = 2000;
 
 interface Opciones {
   /** Texto acumulado por el guante (`useGuante().texto`). */

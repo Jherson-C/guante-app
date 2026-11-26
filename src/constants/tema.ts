@@ -42,7 +42,7 @@ export const ACENTO: Record<
     color: COLOR.guante,
     suave: COLOR.guanteSuave,
     borde: COLOR.guanteBorde,
-    nombre: 'Guante',
+    nombre: 'Señas',
   },
   voz: {
     color: COLOR.voz,

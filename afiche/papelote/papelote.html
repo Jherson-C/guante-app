@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Papelote – Diferente forma de comunicarnos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=block" rel="stylesheet">
+<style>
+  :root { --azul:#3B2BD4; --azul2:#5A4CEB; --azul3:#2A1EA6; --gris:#D4D6DE; --gris2:#EEF0F5; --negro:#1B1C29;
+          --blanco:#fff; --amarillo:#FFC94D; --piel1:#F3C59E; --piel2:#B97A50; }
+  @page { size: A4 portrait; margin: 0; }
+  @page horizontal { size: A4 landscape; margin: 0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Nunito", "Segoe UI", sans-serif; color:var(--negro); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .hoja { width:210mm; height:297mm; position:relative; overflow:hidden; page-break-after:always; break-after:page; padding:7mm; display:flex; flex-direction:column; gap:5mm; align-items:center; }
+  .hoja.h { page: horizontal; width:297mm; height:210mm; }
+  .hoja:last-child { page-break-after:auto; break-after:auto; }
+  .corte { position:relative; flex:none; }
+  .pieza { position:relative; overflow:hidden; outline:0.25mm dashed #8a8a8a; }
+  .etiqueta { font:700 8.5pt/1.25 "Nunito", sans-serif; color:#555; margin-top:1.5mm; text-align:center; }
+  .etiqueta b { color:var(--azul); }
+  .tijera { color:#999; }
+  .fredoka { font-family:"Fredoka", "Nunito", sans-serif; }
+  svg { display:block; }
+
+  /* ---------- Guías ---------- */
+  .guia h1 { font:700 22pt/1.1 "Fredoka", sans-serif; color:var(--azul); align-self:flex-start; }
+  .guia p { font:700 10.5pt/1.4 "Nunito", sans-serif; align-self:flex-start; color:#333; }
+  .guia ul { align-self:flex-start; font:700 10pt/1.5 "Nunito", sans-serif; color:#333; padding-left:6mm; }
+  .mapa { position:relative; border:0.6mm solid var(--negro); flex:none; }
+  .mapa .zona { position:absolute; display:flex; align-items:flex-start; justify-content:center; font:800 9pt "Nunito"; color:#fff; padding-top:2mm; }
+  .mapa .pz { position:absolute; background:rgba(255,255,255,.9); border:0.5mm solid var(--azul); color:var(--azul);
+              font:800 11pt/1.1 "Nunito"; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .mapa .medida { position:absolute; font:800 8pt "Nunito"; color:#d03030; white-space:nowrap; }
+  .doblez { position:absolute; top:0; bottom:0; border-left:0.6mm dashed #d03030; }
+
+  /* ---------- Piezas ---------- */
+  .titulo { width:200mm; height:90mm; background:var(--azul); display:flex; align-items:center; justify-content:center; }
+  .titulo span { font:700 23mm/1 "Fredoka", sans-serif; color:#fff; letter-spacing:-0.5mm; white-space:nowrap; position:relative; }
+  .titulo span::after { content:""; position:absolute; left:4%; right:4%; bottom:-6mm; height:3.2mm; border-radius:3mm; background:var(--amarillo); }
+  .sub { width:200mm; height:50mm; background:var(--negro); color:#fff; display:flex; align-items:center; justify-content:center;
+         font:800 12.5mm/1 "Nunito", sans-serif; white-space:nowrap; }
+  .sub em { color:var(--amarillo); font-style:normal; }
+  .esquina { width:90mm; height:40mm; background:var(--negro); color:#fff; display:flex; flex-direction:column; justify-content:center; padding:0 6mm; }
+  .esquina b { font:700 9mm/1 "Fredoka"; letter-spacing:.5mm; }
+  .esquina span { font:800 4.2mm/1.3 "Nunito"; color:var(--gris); margin-top:1.5mm; }
+
+  .card { padding:10mm; display:flex; flex-direction:column; }
+  .card h2 { font:700 14mm/1.02 "Fredoka", sans-serif; letter-spacing:-0.2mm; }
+  .card p { font:700 6.4mm/1.32 "Nunito", sans-serif; }
+  .azul { background:var(--azul); color:#fff; }
+  .blanco { background:#fff; color:var(--negro); }
+  .grisbg { background:var(--gris2); color:var(--negro); }
+  .negro { background:var(--negro); color:#fff; }
+  .chip { display:inline-block; font:800 5.2mm/1 "Nunito"; padding:2.4mm 4.5mm; border-radius:10mm; }
+  .grande { font:700 30mm/0.9 "Fredoka", sans-serif; letter-spacing:-1mm; }
+</style>
+</head>
+<body>
+
+<!-- ================= GUÍA 1: PORTADA ================= -->
+<section class="hoja guia">
+  <h1>Guía de armado · Portada (50 × 70 cm)</h1>
+  <p>La portada son las dos tapas cerradas (25 cm cada una). Las piezas de cada lado se pegan con su borde
+    <b>contra el doblez del centro</b> (línea roja), así el título y el dibujo se ven continuos al cerrar.</p>
+  <div class="mapa" id="mapaPortada" style="width:150mm;height:210mm;background:linear-gradient(160deg,#D4D6DE 0 30%,#3B2BD4 30% 48%,#D4D6DE 48% 62%,#3B2BD4 62%);"></div>
+  <ul>
+    <li>Imprime en A4 <b>al 100 % / «tamaño real»</b> (no «ajustar a la página»), si puedes en papel de 120 g o más.</li>
+    <li>Recorta por la línea punteada de cada pieza. Las medidas (en cm) son desde el borde de arriba y desde el borde izquierdo.</li>
+  </ul>
+</section>
+
+<!-- ================= GUÍA 2: INTERIOR ================= -->
+<section class="hoja h guia">
+  <h1>Guía de armado · Fondo abierto (100 × 70 cm)</h1>
+  <div class="mapa" id="mapaFondo" style="width:220mm;height:154mm;"></div>
+  <p>Tapas laterales oscuras (25 cm) y panel blanco central (50 cm). Medidas en cm desde el borde de arriba y desde el borde izquierdo del papelote abierto.</p>
+</section>
+
+<!-- ================= PORTADA ================= -->
+<section class="hoja">
+  <div class="corte"><div class="pieza titulo"><span>Diferente forma</span></div>
+    <div class="etiqueta"><b>C1</b> · Portada, tapa izquierda · borde derecho contra el doblez · a 13 cm de arriba</div></div>
+  <div class="corte"><div class="pieza titulo"><span>de comunicarnos</span></div>
+    <div class="etiqueta"><b>C2</b> · Portada, tapa derecha · borde izquierdo contra el doblez · a 13 cm de arriba</div></div>
+</section>
+
+<section class="hoja">
+  <div class="corte"><div class="pieza" data-escena="0 0 400 540" style="width:200mm;height:270mm"></div>
+    <div class="etiqueta"><b>C3</b> · Portada, tapa izquierda · borde derecho contra el doblez · a 24 cm de arriba</div></div>
+</section>
+
+<section class="hoja">
+  <div class="corte"><div class="pieza" data-escena="400 0 400 540" style="width:200mm;height:270mm"></div>
+    <div class="etiqueta"><b>C4</b> · Portada, tapa derecha · borde izquierdo contra el doblez · a 24 cm de arriba</div></div>
+</section>
+
+<section class="hoja">
+  <div class="corte"><div class="pieza sub"><span>Traductor de <em>Lengua de Señas</em></span></div>
+    <div class="etiqueta"><b>C5</b> · Portada, tapa izquierda · borde derecho contra el doblez · a 53 cm de arriba</div></div>
+  <div class="corte"><div class="pieza sub"><span><em>Peruana</em> con visión artificial</span></div>
+    <div class="etiqueta"><b>C6</b> · Portada, tapa derecha · borde izquierdo contra el doblez · a 53 cm de arriba</div></div>
+  <div class="corte"><div class="pieza esquina"><b>UPN</b><span>Taller de Robótica 2026</span></div>
+    <div class="etiqueta"><b>C7</b> · Portada · sobre la esquina negra de arriba a la izquierda (1 cm, 1 cm)</div></div>
+  <div class="corte"><div class="pieza card azul" style="width:200mm;height:60mm;align-items:center;justify-content:center;text-align:center;padding:5mm">
+      <h2 style="font-size:10mm">Comunicarnos es un derecho de todos</h2></div>
+    <div class="etiqueta"><b>I10</b> · Fondo, panel blanco · centrada abajo (40 cm desde la izquierda, 59 cm de arriba)</div></div>
+</section>
+
+<!-- ================= TAPA IZQUIERDA (fondo) ================= -->
+<section class="hoja">
+  <div class="corte"><div class="pieza card azul" style="width:200mm;height:200mm;gap:5mm;justify-content:space-between">
+      <svg viewBox="0 0 200 50" style="width:85%;height:auto;align-self:center">
+        <g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
+          <circle cx="40" cy="25" r="20" fill="#5A4CEB" stroke="none"/><circle cx="160" cy="25" r="20" fill="#5A4CEB" stroke="none"/>
+          <path d="M66 25h68" stroke-dasharray="2 7"/></g>
+        <text x="40" y="33" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="22" fill="#fff">✋</text>
+        <text x="160" y="33" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="22" fill="#fff">💬</text>
+        <rect x="88" y="12" width="24" height="26" rx="6" fill="#FFC94D"/><text x="100" y="31" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="17" fill="#1B1C29">?</text>
+      </svg>
+      <h2>Una lengua,<br>dos mundos</h2>
+      <p>La <b>Lengua de Señas Peruana (LSP)</b> es lengua oficial del Perú desde 2010 (Ley N.º 29535).</p>
+      <div style="display:flex;align-items:baseline;gap:4mm;margin-top:auto"><span class="grande" style="color:var(--amarillo);font-size:34mm">+4200</span>
+        <p style="font-size:6.4mm;line-height:1.2">estudiantes sordos en colegios del MINEDU</p></div>
+      <p style="opacity:.92">Pero casi nadie a su alrededor sabe LSP: la conversación se corta.</p>
+    </div>
+    <div class="etiqueta"><b>I1</b> · Fondo, tapa izquierda (oscura) · a 2.5 cm del borde izquierdo y 3 cm de arriba</div></div>
+</section>
+
+<section class="hoja">
+  <div class="corte"><div class="pieza card blanco" style="width:200mm;height:125mm;flex-direction:row;gap:7mm;align-items:center">
+      <svg viewBox="0 0 120 120" style="width:55mm;flex:none" id="iconoCamara"></svg>
+      <div><h2 style="color:var(--azul)">Sin guantes ni sensores</h2>
+        <p style="margin-top:4mm">Solo una cámara. La persona sorda <b>no se pone nada</b>: el sistema reconoce sus dos manos.</p></div>
+    </div>
+    <div class="etiqueta"><b>I2</b> · Fondo, tapa izquierda · a 2.5 cm del borde izquierdo y 26 cm de arriba</div></div>
+  <div class="corte"><div class="pieza card grisbg" style="width:200mm;height:125mm;flex-direction:row;gap:7mm;align-items:center">
+      <div><h2 style="color:var(--azul)">Hecho para el Perú</h2>
+        <p style="margin-top:4mm">Aprendió de <b>23 videos</b> de intérpretes peruanos.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:2mm;margin-top:4mm">
+          <span class="chip azul">MINEDU</span><span class="chip azul">PUCP</span><span class="chip azul">TV Perú</span><span class="chip azul">Munilima</span></div></div>
+      <svg viewBox="0 0 120 120" style="width:50mm;flex:none" id="iconoMapa"></svg>
+    </div>
+    <div class="etiqueta"><b>I3</b> · Fondo, tapa izquierda · a 2.5 cm del borde izquierdo y 41.5 cm de arriba</div></div>
+</section>
+
+<!-- ================= PANEL CENTRAL (fondo) ================= -->
+<section class="hoja h">
+  <div class="corte"><div class="pieza grisbg" style="width:270mm;height:60mm;display:flex;align-items:center;justify-content:center;gap:6mm">
+      <span class="fredoka" style="font-weight:700;font-size:22mm;color:var(--azul)">¿Cómo funciona?</span>
+      <svg viewBox="0 0 40 40" style="width:20mm" id="chispa1"></svg></div>
+    <div class="etiqueta"><b>I4</b> · Fondo, panel blanco · arriba al centro (36.5 cm desde la izquierda, 3 cm de arriba)</div></div>
+  <div class="corte"><div class="pieza negro" style="width:270mm;height:100mm;padding:6mm 8mm;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span class="fredoka" style="font-weight:700;font-size:9mm">Así ve nuestro robot las 27 letras</span>
+        <span style="font:800 4mm Nunito;color:var(--gris)">21 puntos por mano</span></div>
+      <div id="abecedario" style="flex:1;display:grid;grid-template-columns:repeat(14,1fr);align-items:center"></div></div>
+    <div class="etiqueta"><b>I7</b> · Fondo, panel blanco · al centro (36.5 cm desde la izquierda, 31 cm de arriba)</div></div>
+</section>
+
+<section class="hoja h">
+  <div class="corte"><div class="pieza blanco" style="width:270mm;height:180mm" id="flujo"></div>
+    <div class="etiqueta"><b>I5</b> · Fondo, panel blanco · a 27 cm desde la izquierda y 11 cm de arriba</div></div>
+</section>
+
+<section class="hoja">
+  <div class="corte"><div class="pieza azul" style="width:180mm;height:180mm" id="robot"></div>
+    <div class="etiqueta"><b>I6</b> · Fondo, panel blanco · a 55 cm desde la izquierda y 11 cm de arriba</div></div>
+</section>
+
+<section class="hoja">
+  <div class="corte"><div class="pieza card azul" style="width:190mm;height:130mm;justify-content:center;gap:2mm">
+      <span class="grande" style="font-size:44mm;color:#fff">84<span style="color:var(--amarillo)">%</span></span>
+      <p style="font-size:8mm;line-height:1.15">de aciertos con personas<br>que nunca vio</p>
+      <div style="display:flex;gap:3mm;margin-top:4mm"><span class="chip" style="background:#fff;color:var(--azul)">27 letras</span>
+        <span class="chip" style="background:#fff;color:var(--azul)">572 ejemplos</span><span class="chip" style="background:var(--amarillo);color:var(--negro)">J, Ñ y Z con movimiento</span></div></div>
+    <div class="etiqueta"><b>I8</b> · Fondo, panel blanco · a 29 cm desde la izquierda y 43 cm de arriba</div></div>
+  <div class="corte"><div class="pieza grisbg" style="width:190mm;height:130mm" id="charla"></div>
+    <div class="etiqueta"><b>I9</b> · Fondo, panel blanco · a 52 cm desde la izquierda y 43 cm de arriba</div></div>
+</section>
+
+<!-- ================= TAPA DERECHA (fondo) ================= -->
+<section class="hoja">
+  <div class="corte"><div class="pieza card blanco" style="width:200mm;height:270mm;justify-content:space-between" id="beneficios">
+      <h2 style="color:var(--azul);font-size:16mm">¿A quién ayuda?</h2>
+    </div>
+    <div class="etiqueta"><b>I11</b> · Fondo, tapa derecha (oscura) · a 77.5 cm desde la izquierda y 3 cm de arriba</div></div>
+</section>
+
+<section class="hoja">
+  <div class="corte"><div class="pieza card azul" style="width:200mm;height:180mm;gap:4mm">
+      <div style="display:flex;align-items:center;gap:4mm"><span class="fredoka" style="font-weight:700;font-size:20mm">UPN</span>
+        <p style="font-size:5.4mm;line-height:1.25">Universidad Privada del Norte<br>Ingeniería de Sistemas Computacionales</p></div>
+      <span class="chip" style="background:var(--amarillo);color:var(--negro);align-self:flex-start">Taller de Robótica 2026</span>
+      <h2 style="font-size:10mm;margin-top:3mm">Equipo</h2>
+      <p style="font-size:6mm;line-height:1.45">Carlos Manuel Angeles Santa Cruz<br>Herbert Jherson Cahuana Moquillaza<br>Adriano Rikardo Sanchez Bravo<br>
+        Dayanna Melany Churampi Cardenas<br>Clever Enrique Rojas Quispe<br>Edwin Alexis Santillana Pinillos</p>
+      <p style="font-size:6mm;margin-top:auto"><b>Docente:</b> Gabriel Augusto Tirado Mendoza</p></div>
+    <div class="etiqueta"><b>I12</b> · Fondo, tapa derecha · a 77.5 cm desde la izquierda y 34 cm de arriba</div></div>
+</section>
+
+<script>
+// Colores
+const AZ = '#3B2BD4', AZ2 = '#5A4CEB', AZ3 = '#2A1EA6', GR = '#D4D6DE', GR2 = '#EEF0F5', NE = '#1B1C29', AM = '#FFC94D', P1 = '#F3C59E', P2 = '#B97A50', PELO = '#2A1F2D';
+const chispa = (x, y, r, c = AM) => `<path d="M${x} ${y - r}C${x + r * .18} ${y - r * .18} ${x + r * .18} ${y - r * .18} ${x + r} ${y}C${x + r * .18} ${y + r * .18} ${x + r * .18} ${y + r * .18} ${x} ${y + r}C${x - r * .18} ${y + r * .18} ${x - r * .18} ${y + r * .18} ${x - r} ${y}C${x - r * .18} ${y - r * .18} ${x - r * .18} ${y - r * .18} ${x} ${y - r}Z" fill="${c}"/>`;
+
+// ---------- Escena de portada (800 × 540; cada tapa muestra su mitad) ----------
+const manoHola = (ox, oy, s, piel) => {   // mano abierta saludando, con los puntos que mide la cámara
+  const P = (x, y) => [ox + x * s, oy + y * s];
+  const dedos = [[-27, -62, 44], [-9, -72, 54], [9, -68, 50], [26, -56, 40]];
+  let g = `<rect x="${ox - 34 * s}" y="${oy - 30 * s}" width="${68 * s}" height="${62 * s}" rx="${24 * s}" fill="${piel}"/>`;
+  for (const [dx, dy, h] of dedos) g += `<rect x="${ox + (dx - 8) * s}" y="${oy + dy * s}" width="${16 * s}" height="${h * s}" rx="${8 * s}" fill="${piel}"/>`;
+  g += `<rect x="${ox + 22 * s}" y="${oy - 12 * s}" width="${16 * s}" height="${44 * s}" rx="${8 * s}" fill="${piel}" transform="rotate(48 ${ox + 30 * s} ${oy + 10 * s})"/>`;
+  const muneca = P(0, 30), bases = [P(-27, -16), P(-9, -20), P(9, -18), P(26, -14)], puntas = [P(-27, -56), P(-9, -66), P(9, -62), P(26, -50)], pulgar = [P(26, 10), P(44, -6), P(58, -20)];
+  let l = '', d = '';
+  for (let i = 0; i < 4; i++) { const [bx, by] = bases[i], [tx, ty] = puntas[i]; l += `M${muneca[0]} ${muneca[1]}L${bx} ${by}L${tx} ${ty}`; d += [bases[i], [(bx + tx) / 2, (by + ty) / 2], puntas[i]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${4.2 * s}"/>`).join(''); }
+  l += `M${muneca[0]} ${muneca[1]}L${pulgar[0][0]} ${pulgar[0][1]}L${pulgar[1][0]} ${pulgar[1][1]}L${pulgar[2][0]} ${pulgar[2][1]}M${bases[0][0]} ${bases[0][1]}L${bases[3][0]} ${bases[3][1]}`;
+  d += [muneca, ...pulgar].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${4.2 * s}"/>`).join('');
+  return g + `<path d="${l}" stroke="#fff" stroke-width="${2.6 * s}" fill="none" stroke-linecap="round" opacity=".95"/><g fill="${AM}" stroke="${NE}" stroke-width="${1.2 * s}">${d}</g>`;
+};
+const ESCENA = `
+  <rect width="800" height="540" fill="${AZ}"/>
+  <circle cx="200" cy="330" r="190" fill="${AZ2}"/><circle cx="610" cy="330" r="190" fill="${AZ2}"/>
+  <path d="M0 470 C150 430 280 520 400 480 C520 440 650 520 800 470 L800 540 L0 540Z" fill="${AZ3}"/>
+  ${chispa(60, 60, 16)}${chispa(345, 215, 11, '#fff')}${chispa(760, 70, 14)}${chispa(455, 230, 9, '#fff')}${chispa(36, 330, 9, '#fff')}${chispa(770, 320, 10, '#fff')}
+  <g fill="#fff" opacity=".35"><circle cx="300" cy="40" r="4"/><circle cx="330" cy="58" r="3"/><circle cx="520" cy="30" r="4"/><circle cx="545" cy="52" r="3"/></g>
+  <!-- Persona sorda: hace la seña -->
+  <path d="M132 255 C126 172 176 152 208 154 C262 157 286 198 276 258 L282 345 L252 338 L254 272 L150 272 L152 338 L122 345Z" fill="${PELO}"/>
+  <rect x="181" y="295" width="38" height="56" rx="8" fill="${P1}"/>
+  <path d="M60 540 C66 420 122 360 200 360 C278 360 334 420 340 540Z" fill="#fff"/>
+  <path d="M176 361 L200 394 L224 361Z" fill="${P1}"/>
+  <circle cx="200" cy="255" r="62" fill="${P1}"/>
+  <path d="M138 248 C146 196 190 182 216 188 C244 194 264 216 264 250 C246 222 214 212 188 220 C166 227 150 238 138 248Z" fill="${PELO}"/>
+  <circle cx="181" cy="262" r="7" fill="${NE}"/><circle cx="219" cy="262" r="7" fill="${NE}"/><circle cx="183.5" cy="259.5" r="2.2" fill="#fff"/><circle cx="221.5" cy="259.5" r="2.2" fill="#fff"/>
+  <circle cx="163" cy="282" r="10" fill="#F58E99" opacity=".45"/><circle cx="237" cy="282" r="10" fill="#F58E99" opacity=".45"/>
+  <path d="M180 287 Q200 306 220 287" stroke="${NE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M120 418 C92 366 86 296 100 226" stroke="${P1}" stroke-width="40" fill="none" stroke-linecap="round"/>
+  <path d="M90 438 C96 404 106 390 122 378 L150 414 C138 424 128 434 122 446Z" fill="#fff"/>
+  ${manoHola(102, 196, 1.15, P1)}
+  <g><rect x="166" y="64" width="196" height="78" rx="39" fill="#fff"/><path d="M196 138 L170 168 L222 140Z" fill="#fff"/>
+    <text x="264" y="117" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="44" fill="${AZ}">¡HOLA!</text></g>
+  <!-- Persona oyente: responde hablando -->
+  <rect x="581" y="295" width="38" height="56" rx="8" fill="${P2}"/>
+  <path d="M460 540 C466 420 522 360 600 360 C678 360 734 420 740 540Z" fill="${GR}"/>
+  <path d="M576 361 L600 394 L624 361Z" fill="${P2}"/>
+  <circle cx="600" cy="255" r="62" fill="${P2}"/>
+  <path d="M540 246 C534 186 574 170 604 172 C642 174 668 196 662 246 C654 226 634 214 604 214 C576 214 556 226 540 246Z" fill="${PELO}"/>
+  <g fill="${PELO}"><circle cx="552" cy="210" r="16"/><circle cx="576" cy="186" r="17"/><circle cx="606" cy="178" r="18"/><circle cx="636" cy="188" r="17"/><circle cx="656" cy="212" r="15"/></g>
+  <circle cx="581" cy="262" r="7" fill="${NE}"/><circle cx="619" cy="262" r="7" fill="${NE}"/><circle cx="583.5" cy="259.5" r="2.2" fill="#fff"/><circle cx="621.5" cy="259.5" r="2.2" fill="#fff"/>
+  <circle cx="563" cy="282" r="10" fill="#E0707C" opacity=".4"/><circle cx="637" cy="282" r="10" fill="#E0707C" opacity=".4"/>
+  <ellipse cx="600" cy="293" rx="13" ry="10" fill="${NE}"/><ellipse cx="600" cy="298" rx="7" ry="3.5" fill="#E86B78"/>
+  <g stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"><path d="M520 268 Q506 292 520 316"/><path d="M500 252 Q478 292 500 332"/><path d="M480 236 Q450 292 480 348" opacity=".6"/></g>
+  <g><rect x="448" y="56" width="300" height="94" rx="47" fill="#fff"/><path d="M668 146 L690 182 L640 148Z" fill="#fff"/>
+    <text x="598" y="98" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="30" fill="${AZ}">¡Hola!</text>
+    <text x="598" y="133" text-anchor="middle" font-family="Fredoka" font-weight="600" font-size="27" fill="${NE}">¿Cómo estás?</text></g>
+`;
+document.querySelectorAll('[data-escena]').forEach(el => { el.innerHTML = `<svg viewBox="${el.dataset.escena}" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%">${ESCENA}</svg>`; });
+
+// ---------- Íconos ----------
+document.getElementById('chispa1').innerHTML = chispa(20, 20, 18, AM);
+document.getElementById('iconoCamara').innerHTML = `<circle cx="60" cy="60" r="58" fill="${GR2}"/>
+  <rect x="18" y="38" width="60" height="44" rx="12" fill="${AZ}"/><circle cx="48" cy="60" r="14" fill="#fff"/><circle cx="48" cy="60" r="7" fill="${NE}"/>
+  <rect x="34" y="82" width="28" height="8" rx="4" fill="${NE}"/>${manoHola(92, 66, 0.42, P2)}${chispa(100, 22, 8)}`;
+document.getElementById('iconoMapa').innerHTML = `<circle cx="60" cy="60" r="58" fill="#fff"/>
+  <path d="M60 20 C42 20 30 34 30 50 C30 72 60 100 60 100 C60 100 90 72 90 50 C90 34 78 20 60 20Z" fill="${AZ}"/><circle cx="60" cy="50" r="13" fill="#fff"/>
+  <text x="60" y="56" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="16" fill="${AZ}">PE</text>${chispa(96, 26, 8)}`;
+
+// ---------- Cómo funciona (270 × 180 mm → viewBox 1350 × 900) ----------
+const paso = (x, n, titulo, l1, l2, icono) => `<g><circle cx="${x}" cy="300" r="125" fill="${GR2}"/>${icono}
+  <circle cx="${x - 92}" cy="200" r="32" fill="${AZ}"/><text x="${x - 92}" y="213" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="38" fill="#fff">${n}</text>
+  <text x="${x}" y="490" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="40" fill="${NE}">${titulo}</text>
+  <text x="${x}" y="540" text-anchor="middle" font-family="Nunito" font-weight="700" font-size="30" fill="#555">${l1}</text>
+  <text x="${x}" y="578" text-anchor="middle" font-family="Nunito" font-weight="700" font-size="30" fill="#555">${l2}</text></g>`;
+const flecha = x => `<path d="M${x - 34} 300 H${x + 22}" stroke="${AZ}" stroke-width="10" stroke-linecap="round"/><path d="M${x + 16} 282 L${x + 40} 300 L${x + 16} 318Z" fill="${AZ}"/>`;
+const xs = [190, 520, 850, 1170];
+document.getElementById('flujo').innerHTML = `<svg viewBox="0 0 1350 900" style="width:100%;height:100%">
+  <text x="60" y="100" font-family="Fredoka" font-weight="700" font-size="62" fill="${AZ}">De la seña a la voz, en el momento</text>
+  ${paso(xs[0], 1, 'Haces la seña', 'frente a la', 'cámara', manoHola(xs[0], 330, 1.25, P1))}
+  ${flecha(355)}
+  ${paso(xs[1], 2, 'La cámara ve', '21 puntos', 'en cada mano', `<rect x="${xs[1] - 70}" y="250" width="140" height="100" rx="24" fill="${AZ}"/><circle cx="${xs[1]}" cy="300" r="34" fill="#fff"/><circle cx="${xs[1]}" cy="300" r="17" fill="${NE}"/><rect x="${xs[1] - 30}" y="350" width="60" height="16" rx="8" fill="${NE}"/>`)}
+  ${flecha(685)}
+  ${paso(xs[2], 3, 'El robot entiende', 'Arduino UNO Q con', 'inteligencia artificial', `<rect x="${xs[2] - 78}" y="246" width="156" height="110" rx="14" fill="#0E8A8F"/><rect x="${xs[2] - 30}" y="272" width="60" height="58" rx="8" fill="${NE}"/>${[0, 1, 2, 3].map(i => `<rect x="${xs[2] - 60 + i * 34}" y="232" width="10" height="18" rx="3" fill="${AM}"/>`).join('')}${chispa(xs[2] + 60, 236, 14)}`)}
+  ${flecha(1010)}
+  ${paso(xs[3], 4, 'Texto y voz', 'en la pantalla', 'de la tablet', `<rect x="${xs[3] - 80}" y="240" width="140" height="110" rx="14" fill="${NE}"/><rect x="${xs[3] - 70}" y="250" width="120" height="90" rx="6" fill="#fff"/><text x="${xs[3] - 10}" y="306" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="30" fill="${AZ}">HOLA</text><g stroke="${AZ}" stroke-width="8" fill="none" stroke-linecap="round"><path d="M${xs[3] + 74} 280 Q${xs[3] + 88} 300 ${xs[3] + 74} 320"/><path d="M${xs[3] + 92} 266 Q${xs[3] + 114} 300 ${xs[3] + 92} 334"/></g>`)}
+  <rect x="60" y="680" width="1230" height="150" rx="75" fill="${AZ}"/>
+  <g stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round"><path d="M150 735 Q138 755 150 775"/><path d="M130 722 Q110 755 130 788"/></g>
+  <circle cx="190" cy="755" r="26" fill="${AM}"/><text x="190" y="766" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="30" fill="${NE}">↩</text>
+  <text x="240" y="745" font-family="Fredoka" font-weight="700" font-size="42" fill="#fff">Y de vuelta: la persona oyente habla</text>
+  <text x="240" y="795" font-family="Nunito" font-weight="800" font-size="32" fill="${GR}">y su voz aparece escrita en la misma pantalla.</text>
+</svg>`;
+
+// ---------- Robot: percibe, decide, actúa (180 × 180 mm → 900 × 900) ----------
+const fila = (y, verbo, que, icono) => `<g><circle cx="140" cy="${y}" r="70" fill="${AZ2}"/>${icono}
+  <text x="240" y="${y - 10}" font-family="Fredoka" font-weight="700" font-size="54" fill="#fff">${verbo}</text>
+  <text x="240" y="${y + 40}" font-family="Nunito" font-weight="800" font-size="31" fill="${GR}">${que}</text></g>`;
+document.getElementById('robot').innerHTML = `<svg viewBox="0 0 900 900" style="width:100%;height:100%">
+  <text x="60" y="110" font-family="Fredoka" font-weight="700" font-size="66" fill="#fff">¿Por qué es un robot?</text>
+  ${chispa(820, 80, 26)}
+  ${fila(260, 'Percibe', 'la cámara ve tus manos', `<rect x="102" y="232" width="76" height="56" rx="14" fill="#fff"/><circle cx="140" cy="260" r="17" fill="${AZ}"/>`)}
+  ${fila(460, 'Decide', 'el Arduino reconoce la seña', `<rect x="104" y="424" width="72" height="72" rx="12" fill="#fff"/><rect x="124" y="444" width="32" height="32" rx="5" fill="${AZ}"/>`)}
+  ${fila(660, 'Actúa', 'un motor gira la pantalla', `<circle cx="140" cy="660" r="34" fill="none" stroke="#fff" stroke-width="12" stroke-dasharray="14 9"/><circle cx="140" cy="660" r="12" fill="#fff"/>`)}
+  <text x="60" y="830" font-family="Nunito" font-weight="800" font-size="30" fill="${AM}">Base giratoria con servomotor MG995</text>
+</svg>`;
+
+// ---------- Conversación en la tablet (190 × 130 mm → 950 × 650) ----------
+document.getElementById('charla').innerHTML = `<svg viewBox="0 0 950 650" style="width:100%;height:100%">
+  <text x="50" y="80" font-family="Fredoka" font-weight="700" font-size="52" fill="${AZ}">Una charla real</text>
+  <rect x="50" y="120" width="850" height="480" rx="36" fill="${NE}"/><rect x="74" y="144" width="802" height="432" rx="18" fill="#fff"/>
+  <rect x="104" y="180" width="440" height="110" rx="55" fill="${AZ}"/><text x="140" y="250" font-family="Fredoka" font-weight="700" font-size="44" fill="#fff">✋ Hola, soy Ana</text>
+  <rect x="330" y="320" width="520" height="110" rx="55" fill="${GR}"/><text x="365" y="390" font-family="Fredoka" font-weight="700" font-size="42" fill="${NE}">🎤 ¡Hola Ana! ¿Qué tal?</text>
+  <rect x="104" y="460" width="380" height="90" rx="45" fill="${AZ}" opacity=".9"/><text x="140" y="518" font-family="Fredoka" font-weight="700" font-size="40" fill="#fff">✋ Muy bien 😊</text>
+</svg>`;
+
+// ---------- Beneficios ----------
+const benef = [['🤝', 'Inclusión', 'Colegios, hospitales y municipios pueden atender a personas sordas.'],
+  ['🗣️', 'Autonomía', 'Para lo básico ya no hace falta esperar a un intérprete.'],
+  ['⚡', 'En el momento', 'La seña sale en texto y voz al instante.'],
+  ['🙌', 'Fácil de usar', 'Nada que ponerse. Aprende señas nuevas frente a la cámara.'],
+  ['📍', 'Hecho en el Perú', 'Pensado para la Lengua de Señas Peruana.']];
+document.getElementById('beneficios').insertAdjacentHTML('beforeend', benef.map(([e, t, d]) => `
+  <div style="display:flex;gap:5mm;align-items:center">
+    <div style="flex:none;width:32mm;height:32mm;border-radius:16mm;background:${GR2};display:flex;align-items:center;justify-content:center;font-size:16mm">${e}</div>
+    <div><div class="fredoka" style="font-weight:700;font-size:10.5mm;color:${AZ}">${t}</div><p style="font-size:6mm;line-height:1.25">${d}</p></div></div>`).join(''));
+
+// ---------- Abecedario (puntos reales sacados de los videos) ----------
+const ESQ = __ESQUELETOS__;
+const HUESOS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+const abc = document.getElementById('abecedario');
+for (const [letra, p] of Object.entries(ESQ)) {
+  const xs2 = p.map(q => q[0]), ys2 = p.map(q => q[1]);
+  const cx = (Math.min(...xs2) + Math.max(...xs2)) / 2, cy = (Math.min(...ys2) + Math.max(...ys2)) / 2;
+  const P = p.map(([x, y]) => [50 + (x - cx) * 80, 46 + (y - cy) * 80]);
+  abc.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 100 112" style="width:100%"><g stroke="#fff" stroke-width="2.6" stroke-linecap="round">${HUESOS.map(([a, b]) => `<line x1="${P[a][0]}" y1="${P[a][1]}" x2="${P[b][0]}" y2="${P[b][1]}"/>`).join('')}</g>
+    <g fill="${AM}">${P.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${[4, 8, 12, 16, 20].includes(i) ? 3.8 : 2.6}"/>`).join('')}</g>
+    <text x="50" y="108" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="16" fill="#fff">${letra}</text></svg>`);
+}
+
+// ---------- Mapas de armado ----------
+const mapa = (id, ancho, alto, escala, zonas, piezas, doblez) => {
+  const el = document.getElementById(id), mm = v => `${v * escala}mm`;
+  el.insertAdjacentHTML('beforeend', zonas.map(([x, w, c, t]) => `<div class="zona" style="left:${mm(x)};top:0;width:${mm(w)};height:100%;background:${c}">${t}</div>`).join(''));
+  for (const x of doblez) el.insertAdjacentHTML('beforeend', `<div class="doblez" style="left:${mm(x)}"></div>`);
+  el.insertAdjacentHTML('beforeend', piezas.map(([n, x, y, w, h]) => `<div class="pz" style="left:${mm(x)};top:${mm(y)};width:${mm(w)};height:${mm(h)}">${n}</div>
+    <div class="medida" style="left:${mm(x)};top:${mm(y)};transform:translate(1mm,-4mm)">${x}, ${y}</div>`).join(''));
+};
+mapa('mapaPortada', 50, 70, 3, [[0, 9, NE, ''], ], [['C7', 1, 1, 9, 4], ['C1', 5, 13, 20, 9], ['C2', 25, 13, 20, 9], ['C3', 5, 24, 20, 27], ['C4', 25, 24, 20, 27], ['C5', 5, 53, 20, 5], ['C6', 25, 53, 20, 5]], [25]);
+document.querySelector('#mapaPortada .zona').style.height = '33mm';
+mapa('mapaFondo', 100, 70, 2.2, [[0, 25, NE, 'Tapa izquierda'], [25, 50, '#ffffff', ''], [75, 25, NE, 'Tapa derecha']],
+  [['I1', 2.5, 3, 20, 20], ['I2', 2.5, 26, 20, 12.5], ['I3', 2.5, 41.5, 20, 12.5], ['I4', 36.5, 3, 27, 6], ['I5', 27, 11, 27, 18], ['I6', 55, 11, 18, 18],
+   ['I7', 36.5, 31, 27, 10], ['I8', 29, 43, 19, 13], ['I9', 52, 43, 19, 13], ['I10', 40, 59, 20, 6], ['I11', 77.5, 3, 20, 27], ['I12', 77.5, 34, 20, 18]], [25, 75]);
+</script>
+</body>
+</html>

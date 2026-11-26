@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' file: http://127.0.0.1:8002 data:; media-src 'self' file:; connect-src http://127.0.0.1:8000">
+<title>Aprende LSP</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@700;800;900&display=swap">
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+<header class="barra">
+  <div class="marca"><span class="logo">LSP</span><b>Aprende LSP</b></div>
+  <div class="marcador" aria-live="polite">
+    <span class="pildora"><span class="etq">Puntos</span><b id="puntos">0</b></span>
+    <span class="pildora"><span class="etq">Racha</span><b id="racha">0</b></span>
+    <span class="pildora conexion" id="conexion"><i></i><span id="conexionTexto">Buscando el reconocedor…</span></span>
+  </div>
+</header>
+
+<!-- ======== Inicio ======== -->
+<main id="inicio" class="pantalla">
+  <section class="portada">
+    <h1>Aprende el abecedario<br><span>de la Lengua de Señas Peruana</span></h1>
+    <p>Aparece una letra con su guía. Hazla frente a la cámara: cuando el robot la reconoce, ganas puntos.</p>
+    <div class="botones">
+      <button class="boton primario" id="enOrden">Empezar de la A a la Z</button>
+      <button class="boton" id="alAzar">Letras al azar</button>
+      <button class="boton" id="conMovimiento">Solo J, Ñ y Z</button>
+    </div>
+    <p class="nota">Antes de jugar: abre «1 - Abrir el traductor» (o «Sin la placa») y deja su ventana abierta.</p>
+  </section>
+</main>
+
+<!-- ======== Juego ======== -->
+<main id="juego" class="pantalla" hidden>
+  <section class="tarjeta objetivo" id="tarjeta">
+    <div class="titulo-letra"><span>Haz la letra</span><b id="letra">A</b></div>
+    <div class="guia">
+      <video id="guiaVideo" muted loop autoplay playsinline hidden></video>
+      <img id="guiaImg" alt="">
+      <svg id="guiaEsqueleto" viewBox="0 0 100 100" role="img" aria-label="La letra como la ve el robot: 21 puntos de la mano" hidden></svg>
+    </div>
+    <p class="aviso-mov" id="avisoMov" hidden>Esta letra lleva movimiento: hazla completa.</p>
+    <div class="acciones">
+      <button class="boton chico" id="verRobot">Ver como el robot</button>
+      <button class="boton chico" id="saltar">Saltar</button>
+      <button class="boton chico" id="salir">Salir</button>
+    </div>
+  </section>
+  <section class="tarjeta camara">
+    <img id="video" alt="Tu cámara, con las manos marcadas">
+    <div class="sin-video" id="sinVideo" hidden>No llega la imagen de la cámara.<br>Abre «1 - Abrir el traductor»</div>
+    <div class="veo" id="veo">Veo: <b id="ahora">—</b></div>
+    <div class="mensaje" id="mensaje" aria-live="assertive"></div>
+  </section>
+  <footer class="progreso"><div class="barra-prog"><i id="barraProg"></i></div><span id="contador">1 de 27</span></footer>
+  <div class="exito" id="exito" hidden><div class="sello"><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="28" fill="#FFC94D"></circle><path d="M17 31 L26 40 L44 21" fill="none" stroke="#1B1C29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path></svg><b>¡Lo lograste!</b><span id="exitoPuntos">+10</span></div><div class="confeti" id="confeti"></div></div>
+</main>
+
+<!-- ======== Fin ======== -->
+<main id="fin" class="pantalla" hidden>
+  <section class="portada">
+    <h1>¡Terminaste!</h1>
+    <div class="resumen">
+      <div><b id="finAciertos">0</b><span>letras logradas</span></div>
+      <div><b id="finPuntos">0</b><span>puntos</span></div>
+      <div><b id="finRacha">0</b><span>mejor racha</span></div>
+    </div>
+    <p id="finPracticar"></p>
+    <div class="botones"><button class="boton primario" id="otraVez">Jugar otra vez</button><button class="boton" id="practicar">Practicar las que salté</button></div>
+  </section>
+</main>
+
+<script src="esqueletos.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

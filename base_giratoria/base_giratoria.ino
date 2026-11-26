@@ -8,7 +8,11 @@
  *    HM-10 VCC -> 5V        HM-10 GND -> GND
  *    HM-10 TXD -> pin 2     HM-10 RXD -> pin 3 (con divisor 1k/2k: el RX del
  *                                              HM-10 es de 3.3 V)
- *    Servo señal -> pin 9   Servo + -> 5V (mejor fuente aparte)   Servo - -> GND
+ *    Servo MG996R: naranja (señal) -> pin 9
+ *                  rojo (+)       -> + de una FUENTE EXTERNA 5-6 V, 3 A o más
+ *                  café (-)       -> GND común (Arduino + fuente)
+ *    NUNCA alimentes el MG996R desde el 5V del Arduino: pide hasta 2.5 A y
+ *    reinicia el Arduino. Ver esquema_base_giratoria.html.
  *
  *  NOMBRE BLE
  *    La app acepta "BaseGiro" y también los nombres de fábrica (HMSoft, BT05,
@@ -19,7 +23,7 @@
  *
  *  PROTOCOLO (líneas terminadas en '\n')
  *    PING        -> PONG          (la app lo manda al conectarse)
- *    G:<0-180>   -> OK:G:<grados> (gira el servo a ese ángulo)
+ *    G:<0-180>   -> OK:G:<grados> (gira el servo suave hasta ese ángulo)
  *    otra cosa   -> ERR:<motivo>
  *
  *  NO es un HM-10 si en el celular aparece solo en los ajustes de Bluetooth
@@ -34,9 +38,15 @@
 #define BT_TX_PIN 3   // va al RXD del HM-10
 #define SERVO_PIN 9
 #define ANGULO_INICIAL 90
+// Giro suave: 1 grado cada PASO_MS (180° en ~1.4 s). Un salto directo con el
+// MG996R lanza el teléfono de la base y da un pico de corriente.
+#define PASO_MS 8
 
 SoftwareSerial bt(BT_RX_PIN, BT_TX_PIN);
 Servo servo;
+int anguloActual = ANGULO_INICIAL;
+int anguloObjetivo = ANGULO_INICIAL;
+unsigned long ultimoPaso = 0;
 String linea = "";
 
 void responder(const String& s) {
@@ -63,7 +73,7 @@ void procesar(String cmd) {
       return;
     }
     int grados = constrain(num.toInt(), 0, 180);
-    servo.write(grados);
+    anguloObjetivo = grados;  // loop() lo alcanza de a poco
     responder("OK:G:" + String(grados));
     return;
   }
@@ -78,7 +88,16 @@ void setup() {
   Serial.println("Base giratoria lista. Esperando la app...");
 }
 
+// Avanza un grado hacia el objetivo sin bloquear: el BLE se sigue leyendo.
+void moverServo() {
+  if (anguloActual == anguloObjetivo || millis() - ultimoPaso < PASO_MS) return;
+  ultimoPaso = millis();
+  anguloActual += (anguloObjetivo > anguloActual) ? 1 : -1;
+  servo.write(anguloActual);
+}
+
 void loop() {
+  moverServo();
   while (bt.available()) {
     char c = bt.read();
     if (c == '\n' || c == '\r') {

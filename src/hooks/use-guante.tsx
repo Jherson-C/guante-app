@@ -3,8 +3,8 @@
  * sin nube, sin persistencia. Al destruirse el proceso este texto desaparece,
  * y es aceptado y comunicado en la UI (SPEC §6).
  *
- * Maneja 3 conexiones BLE: guante derecho, guante izquierdo y base giratoria.
- * Los dos guantes escriben en el MISMO texto; la base solo recibe comandos.
+ * Maneja una conexión BLE: el cerebro UNO Q, que recibe los guantes (escriben
+ * el texto) y mueve el servo de la base giratoria (recibe comandos G:<grados>).
  */
 
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
@@ -14,7 +14,7 @@ import { Platform } from 'react-native';
 
 import { DispositivoBle } from '@/ble/guante';
 import type { ConnectionPhase } from '@/ble/guante';
-import { GUANTES, PERFILES, parseLine } from '@/ble/protocol';
+import { PERFILES, parseLine } from '@/ble/protocol';
 import type { Frame, IdDispositivo, Telemetria } from '@/ble/protocol';
 import { textoDeReconocimiento } from '@/domain/frases';
 import {
@@ -35,31 +35,14 @@ export interface EstadoDispositivo {
 
 const MAX_DEBUG_FRAMES = 12;
 const MAX_INFO_LINES = 8;
-const IDS: IdDispositivo[] = ['guanteDerecho', 'guanteIzquierdo', 'base'];
+const IDS: IdDispositivo[] = ['guantes'];
 
 const ESTADOS_INICIALES = Object.fromEntries(
   IDS.map((id) => [id, { fase: 'inicial', detalle: null }]),
 ) as Record<IdDispositivo, EstadoDispositivo>;
 
-/** El guante que resume el estado: gana el que esté más avanzado. */
-const PRIORIDAD_FASE: ConnectionPhase[] = [
-  'operativo',
-  'conectado',
-  'conectando',
-  'escaneando',
-  'verificando',
-  'reconectando',
-];
-function guantePrincipal(estados: Record<IdDispositivo, EstadoDispositivo>): IdDispositivo {
-  for (const p of PRIORIDAD_FASE) {
-    const g = GUANTES.find((id) => estados[id].fase === p);
-    if (g) return g;
-  }
-  return GUANTES.find((id) => estados[id].fase !== 'inicial') ?? 'guanteDerecho';
-}
-
 interface GuanteEstado {
-  /** Resumen de los dos guantes (las pantallas de chat lo usan tal cual). */
+  /** Estado de los guantes (las pantallas de chat lo usan tal cual). */
   fase: ConnectionPhase;
   detalle: string | null;
   /** Estado individual de cada dispositivo. */
@@ -67,14 +50,14 @@ interface GuanteEstado {
   texto: string;
   /** Confianza del último reconocimiento ("S:nombre|conf" — v1.1). */
   confianza: number | null;
-  /** Al menos un guante está operativo. */
+  /** Los guantes están operativos. */
   activo: boolean;
   debugFrames: FrameDebug[];
   totalFrames: number;
   framesInvalidos: number;
-  /** Últimos mensajes informativos del firmware y de la base ("[base] ..."). */
+  /** Últimos mensajes informativos del cerebro (OK:..., WARN:...). */
   infoLineas: string[];
-  /** Última telemetría "D:" (del derecho si está, si no del izquierdo). */
+  /** Última telemetría "D:" de los guantes. */
   tele: Telemetria | null;
   /** Telemetría de cada guante por separado. */
   teles: Partial<Record<IdDispositivo, Telemetria>>;
@@ -82,11 +65,11 @@ interface GuanteEstado {
   simulado: boolean;
   /** Conecta, uno tras otro, los dispositivos que falten. */
   conectar: () => void;
-  /** Desconecta los tres. */
+  /** Desconecta todo. */
   desconectar: () => void;
   conectarDispositivo: (id: IdDispositivo) => void;
   desconectarDispositivo: (id: IdDispositivo) => void;
-  /** Envía una línea de texto a la base giratoria (se le agrega '\n'). */
+  /** Manda un comando de la base giratoria (G:<grados>) al cerebro (se le agrega '\n'). */
   enviarBase: (linea: string) => Promise<void>;
   limpiarTexto: () => void;
   /** Extensión de edición: espacio, borrado y reemplazo desde la UI. */
@@ -120,7 +103,7 @@ export function GuanteProvider({ children }: PropsWithChildren) {
   }, []);
 
   /** Aplica una línea del protocolo al estado de la app (v1.1). */
-  const interpretarFrame = useCallback((frame: Frame, origen: IdDispositivo = 'guanteDerecho') => {
+  const interpretarFrame = useCallback((frame: Frame, origen: IdDispositivo = 'guantes') => {
     // La telemetría llega a ~10 Hz: no cuenta como "reconocimiento" y se limita
     // a 2 Hz por guante para no re-renderizar todas las pantallas 10 veces por segundo.
     if (frame.kind === 'telemetria') {
@@ -197,11 +180,7 @@ export function GuanteProvider({ children }: PropsWithChildren) {
               Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
             }
           },
-          onFrame: (frame, linea) => {
-            if (id !== 'base') return interpretarFrame(frame, id);
-            // La base no escribe en el texto: sus respuestas van al panel de mensajes.
-            setInfoLineas((prev) => [`[base] ${linea}`, ...prev].slice(0, MAX_INFO_LINES));
-          },
+          onFrame: (frame) => interpretarFrame(frame, id),
         });
         return clientes.current[id];
       } catch {
@@ -220,7 +199,7 @@ export function GuanteProvider({ children }: PropsWithChildren) {
 
   const conectarDispositivo = useCallback(
     (id: IdDispositivo) => {
-      if (id !== 'base') setSimulado(false);
+      setSimulado(false);
       void cliente(id)?.conectar();
     },
     [cliente],
@@ -246,9 +225,9 @@ export function GuanteProvider({ children }: PropsWithChildren) {
   }, []);
 
   const enviarBase = useCallback(async (linea: string) => {
-    const base = clientes.current.base;
-    if (!base) throw new Error('Base giratoria no conectada');
-    await base.enviar(linea);
+    const cerebro = clientes.current.guantes; // el servo de la base cuelga del cerebro UNO Q
+    if (!cerebro) throw new Error('Placa no conectada');
+    await cerebro.enviar(linea);
   }, []);
 
   const limpiarTexto = useCallback(() => {
@@ -273,7 +252,7 @@ export function GuanteProvider({ children }: PropsWithChildren) {
     setTexto(nuevo);
   }, []);
 
-  const principal = dispositivos[guantePrincipal(dispositivos)];
+  const principal = dispositivos.guantes;
 
   const estado: GuanteEstado = {
     fase: principal.fase,
@@ -286,7 +265,7 @@ export function GuanteProvider({ children }: PropsWithChildren) {
     totalFrames,
     framesInvalidos,
     infoLineas,
-    tele: teles.guanteDerecho ?? teles.guanteIzquierdo ?? null,
+    tele: teles.guantes ?? null,
     teles,
     simulado,
     conectar,

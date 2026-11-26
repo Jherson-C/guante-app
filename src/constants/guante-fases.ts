@@ -12,11 +12,11 @@ export const ETIQUETAS_FASE: Record<ConnectionPhase, string> = {
   'bt-apagado': 'Bluetooth apagado — actívalo y reintenta',
   'ble-no-disponible': 'Bluetooth BLE no disponible en esta plataforma',
   'permiso-denegado': 'Permisos de Bluetooth denegados',
-  escaneando: 'Buscando el guante…',
-  'no-encontrado': 'No se encontró el guante — ¿está encendido?',
+  escaneando: 'Buscando la placa…',
+  'no-encontrado': 'No se encontró la placa — ¿está encendida?',
   conectando: 'Conectando…',
   conectado: 'Conectado — preparando transmisión…',
-  operativo: 'Guante conectado y listo',
+  operativo: 'Placa conectada y lista',
   reconectando: 'Conexión perdida — reconectando…',
   desconectado: 'Desconectado',
 };
@@ -32,7 +32,7 @@ export const ETIQUETAS_CORTAS: Record<ConnectionPhase, string> = {
   'no-encontrado': 'No encontrado',
   conectando: 'Conectando…',
   conectado: 'Preparando…',
-  operativo: 'Guante listo',
+  operativo: 'Placa lista',
   reconectando: 'Reconectando…',
   desconectado: 'Desconectado',
 };

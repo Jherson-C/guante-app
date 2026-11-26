@@ -21,9 +21,8 @@ export const GUANTE_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // salida 
 export const GUANTE_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // entrada (no usada en MVP)
 export const GUANTE_NAME = 'GuanteLSP';
 
-/** Los 3 dispositivos que la app conecta a la vez. */
-export type IdDispositivo = 'guanteDerecho' | 'guanteIzquierdo' | 'base';
-export const GUANTES: IdDispositivo[] = ['guanteDerecho', 'guanteIzquierdo'];
+/** La app conecta un solo dispositivo: el cerebro UNO Q, que tiene los guantes y mueve la base. */
+export type IdDispositivo = 'guantes';
 
 export interface PerfilBle {
   /** Nombre(s) BLE aceptados al escanear. */
@@ -36,52 +35,28 @@ export interface PerfilBle {
 }
 
 /**
- * Cada guante lleva el mismo firmware con distinto DEVICE_NAME.
- * El derecho acepta también el nombre antiguo "GuanteLSP" (firmware sin cambiar).
- * Base giratoria: servicio FFE0 / característica FFE1 (notify + write), nombre
- * "BaseGiro". Sirve tal cual para Arduino UNO + HM-10 (base_giratoria/) o para
- * un ESP32 que imita al HM-10 (base_giratoria_esp32/).
- * Protocolo de la base (líneas terminadas en '\n'):
- *   app → base:  PING        base → app: PONG
- *   app → base:  G:<0-180>   base → app: OK:G:<grados> | ERR:<motivo>
+ * Guantes: el cerebro (Arduino UNO Q, cerebro/cerebro.py) recibe los dos guantes
+ * y se anuncia como "GuanteLSP-D". También acepta un guante suelto con su
+ * firmware directo ("GuanteLSP-D" o el nombre antiguo "GuanteLSP").
+ * La base giratoria es un servo en el mismo UNO Q. Por el canal RX del cerebro:
+ *   app → cerebro:  PING        cerebro → app: OK:PONG
+ *   app → cerebro:  G:<0-180>   gira la base (suave) a ese ángulo (prueba: 10 s, luego sigue buscando)
+ *   app → cerebro:  T:OYENTE    habla el oyente: la base gira hacia él
+ *   app → cerebro:  T:SORDO     terminó: vuelve a la persona sorda (la que la base eligió)
  */
 export const PERFILES: Record<IdDispositivo, PerfilBle> = {
-  guanteDerecho: {
+  guantes: {
     nombres: ['GuanteLSP-D', GUANTE_NAME],
     servicio: GUANTE_SERVICE_UUID,
     tx: GUANTE_TX_UUID,
     rx: GUANTE_RX_UUID,
-  },
-  guanteIzquierdo: {
-    nombres: ['GuanteLSP-I'],
-    servicio: GUANTE_SERVICE_UUID,
-    tx: GUANTE_TX_UUID,
-    rx: GUANTE_RX_UUID,
-  },
-  base: {
-    // Nombres de fábrica de HM-10 y clones: conecta aunque no se haya renombrado.
-    nombres: ['BaseGiro', 'HMSoft', 'BT05', 'MLT-BT05', 'CC41-A'],
-    servicio: '0000ffe0-0000-1000-8000-00805f9b34fb',
-    tx: '0000ffe1-0000-1000-8000-00805f9b34fb',
-    rx: '0000ffe1-0000-1000-8000-00805f9b34fb',
+    // El cerebro contesta OK:PONG: así queda "operativo" aunque todavía no llegue ninguna seña.
     saludo: 'PING',
   },
 };
 
-/**
- * Hacia dónde gira la base (grados del servo, 0–180) para que la pantalla mire
- * a quien tiene que leer. Calibrar según dónde se sienta cada persona: probar
- * con los botones de giro de la pantalla de conexión y anotar aquí el ángulo.
- */
-export const ANGULO_BASE = {
-  sordo: 0, // cuando habla el oyente: la persona sorda lee la traducción
-  oyente: 180, // cuando firma la persona sorda: el oyente ve el texto
-} as const;
-
 export const NOMBRES_DISPOSITIVO: Record<IdDispositivo, string> = {
-  guanteDerecho: 'Guante derecho',
-  guanteIzquierdo: 'Guante izquierdo',
-  base: 'Base giratoria',
+  guantes: 'Placa y base',
 };
 
 export interface Telemetria {

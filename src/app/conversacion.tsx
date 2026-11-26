@@ -1,12 +1,12 @@
 /**
  * Conversación en horizontal, a pantalla completa.
  *
- * El teléfono va sobre la base giratoria entre las dos personas y muestra un
+ * El teléfono va sobre la base giratoria con la cámara encima y muestra un
  * solo texto, en grande:
- *   - La persona sorda firma con los guantes → la app lo dice en voz alta y la
- *     base gira la pantalla hacia el oyente.
- *   - El oyente habla → el micrófono lo transcribe en grande y la base gira la
- *     pantalla hacia la persona sorda para que lo lea.
+ *   - La base busca a la persona sorda (la que levanta las dos manos) y la
+ *     sigue. Lo que firma, la app lo dice en voz alta para el oyente.
+ *   - El oyente habla → la base gira hacia él mientras el micrófono lo
+ *     transcribe, y vuelve a la persona sorda para que lo lea.
  * El micrófono escucha solo desde que se abre la pantalla (manos libres).
  */
 
@@ -14,17 +14,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ANGULO_BASE } from '@/ble/protocol';
 import { BotonControl } from '@/components/controles';
 import { Cristal } from '@/components/cristal';
 import { Fondo } from '@/components/fondo';
-import { Icono } from '@/components/icono';
-import { IndicadorTurno } from '@/components/indicador-turno';
 import { PantallaGrande } from '@/components/pantalla-grande';
-import { COLORES_FASE, ETIQUETAS_CORTAS, ETIQUETAS_FASE } from '@/constants/guante-fases';
+import { COLORES_FASE, ETIQUETAS_FASE } from '@/constants/guante-fases';
 import { COLOR, FUENTE } from '@/constants/tema';
 import type { Fuente } from '@/constants/tema';
 import { useGuante } from '@/hooks/use-guante';
@@ -34,11 +30,6 @@ import { useTurnos } from '@/hooks/use-turnos';
 
 const ANCHO_RIEL = 84;
 
-function salir() {
-  if (router.canGoBack()) router.back();
-  else router.replace('/');
-}
-
 export default function Conversacion() {
   useKeepAwake();
 
@@ -46,12 +37,6 @@ export default function Conversacion() {
     texto,
     fase,
     dispositivos,
-    confianza,
-    simulado,
-    tele,
-    totalFrames,
-    framesInvalidos,
-    debugFrames,
     conectar,
     desconectar,
     enviarBase,
@@ -62,7 +47,6 @@ export default function Conversacion() {
   const { hablar, detener: detenerVoz, hablando } = useTextoAVoz();
   // Lo firmado se lee en voz alta por defecto: es la forma en que el oyente "escucha" al sordo.
   const [autoVoz, setAutoVoz] = useState(true);
-  const [senales, setSenales] = useState(false);
 
   // Lo que dice la voz y el hilo se necesitan mutuamente: la voz entrega frases
   // finales al hilo, y el hilo cierra el turno del guante cuando alguien habla.
@@ -135,7 +119,6 @@ export default function Conversacion() {
   // --- Quién tiene la palabra -------------------------------------------
   const vivoFuente: Fuente | null = parcial ? 'voz' : guanteVivo ? 'guante' : null;
   const ultimo = turnos.length > 0 ? turnos[turnos.length - 1] : null;
-  const quienHabla = vivoFuente ?? ultimo?.fuente ?? null;
 
   const actual = parcial
     ? { fuente: 'voz' as const, texto: parcial, vivo: true }
@@ -146,13 +129,15 @@ export default function Conversacion() {
         : null;
   const previo = vivoFuente ? ultimo : turnos.length > 1 ? turnos[turnos.length - 2] : null;
 
-  // --- Base giratoria: la pantalla mira a quien tiene que leer -------------
-  // Habla el oyente → gira hacia la persona sorda; firma el sordo → hacia el oyente.
-  const baseLista = dispositivos.base.fase === 'operativo';
-  const mirarA = quienHabla === 'voz' ? 'sordo' : quienHabla === 'guante' ? 'oyente' : null;
+  // --- Base giratoria: la cámara y la pantalla van juntas sobre la base ------
+  // La placa busca y sigue a la persona sorda (la que levanta las dos manos).
+  // Mientras el oyente habla, la base gira hacia él; al terminar la frase vuelve
+  // a la persona sorda, que lee lo dicho. Desde 2 palabras: el ruido suelto no la mueve.
+  const baseLista = dispositivos.guantes.fase === 'operativo'; // el servo está en el cerebro UNO Q
+  const hablaOyente = parcial.trim().split(/\s+/).length >= 2;
   useEffect(() => {
-    if (mirarA && baseLista) enviarBase(`G:${ANGULO_BASE[mirarA]}`).catch(() => {});
-  }, [mirarA, baseLista, enviarBase]);
+    if (baseLista) enviarBase(hablaOyente ? 'T:OYENTE' : 'T:SORDO').catch(() => {});
+  }, [hablaOyente, baseLista, enviarBase]);
 
   const sinGuante = fase !== 'operativo';
   const ocupado =
@@ -228,74 +213,21 @@ export default function Conversacion() {
         ]}
       >
         <View style={styles.escena}>
-          {/* Barra superior compacta */}
-          <View style={styles.barra}>
-            <View style={styles.barraLado}>
-              <Pressable
-                onPress={salir}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Volver"
-              >
-                <Cristal style={styles.botonRedondo}>
-                  <Icono nombre="atras" tamano={18} />
-                </Cristal>
-              </Pressable>
-              <Cristal style={styles.chip}>
-                <View style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]} />
-                <Text style={styles.chipTexto} numberOfLines={1}>
-                  {ETIQUETAS_CORTAS[fase]}
-                </Text>
-                {simulado ? <Text style={styles.simulado}>simulado</Text> : null}
-              </Cristal>
-              {baseLista ? (
-                <Cristal style={styles.chip}>
-                  <View style={[styles.punto, { backgroundColor: COLOR.verde }]} />
-                  <Text style={styles.chipTexto} numberOfLines={1}>
-                    {mirarA === 'sordo'
-                      ? 'Base → persona sorda'
-                      : mirarA === 'oyente'
-                        ? 'Base → oyente'
-                        : 'Base lista'}
-                  </Text>
-                </Cristal>
-              ) : null}
-            </View>
-
-            <IndicadorTurno fuente={quienHabla} vivo={vivoFuente !== null} />
-
-            <View style={[styles.barraLado, styles.barraDerecha]}>
-              <Pressable
-                onPress={() => setSenales((valor) => !valor)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Ver señales del guante"
-                accessibilityState={{ expanded: senales }}
-              >
-                <Cristal
-                  tinte={senales ? COLOR.guanteBorde : undefined}
-                  style={styles.botonRedondo}
-                >
-                  <Icono nombre="senales" tamano={18} color={senales ? COLOR.guante : COLOR.texto} />
-                </Cristal>
-              </Pressable>
-            </View>
-          </View>
-
+          {/* Solo avisos cuando algo falla: el resto de la pantalla es para el texto */}
           {sinGuante || errorVoz ? (
             <View style={styles.avisos}>
               {sinGuante ? (
                 <Cristal style={styles.aviso}>
                   <View style={[styles.punto, { backgroundColor: COLORES_FASE[fase] }]} />
                   <Text style={styles.avisoTexto} numberOfLines={1}>
-                    {ocupado ? ETIQUETAS_FASE[fase] : 'Guantes sin conexión.'}
+                    {ocupado ? ETIQUETAS_FASE[fase] : 'Placa sin conexión.'}
                   </Text>
                   {!ocupado ? (
                     <Pressable
                       onPress={conectar}
                       hitSlop={8}
                       accessibilityRole="button"
-                      accessibilityLabel="Conectar los guantes"
+                      accessibilityLabel="Conectar la placa"
                       style={styles.avisoAccion}
                     >
                       <Text style={styles.avisoAccionTexto}>Conectar</Text>
@@ -340,44 +272,6 @@ export default function Conversacion() {
           {/* La pantalla grande: el texto del turno actual */}
           <View style={styles.grande}>
             <PantallaGrande actual={actual} previo={previo} />
-
-            {senales ? (
-              <Animated.View
-                entering={FadeIn.duration(180)}
-                exiting={FadeOut.duration(140)}
-                style={styles.senales}
-              >
-                <Cristal fuerte style={styles.senalesCara}>
-                  <Text style={styles.senalesTitulo}>Señales del guante</Text>
-                  {tele ? (
-                    <Text style={styles.senalesLinea}>
-                      Flexión {tele.flex.map((valor) => valor.toFixed(0)).join(' · ')}%  ·  giro{' '}
-                      {tele.roll.toFixed(0)}° / {tele.pitch.toFixed(0)}°
-                    </Text>
-                  ) : (
-                    <Text style={styles.senalesLinea}>Sin telemetría todavía</Text>
-                  )}
-                  <Text style={styles.senalesLinea}>
-                    {totalFrames} lecturas · {framesInvalidos} inválidas
-                    {confianza !== null ? ` · confianza ${confianza}%` : ''}
-                  </Text>
-                  {debugFrames.slice(0, 3).map((cuadro) => (
-                    <Text key={cuadro.id} style={styles.senalesTenue}>
-                      {cuadro.texto}
-                      {cuadro.confianza !== null ? ` · ${cuadro.confianza}%` : ''}
-                    </Text>
-                  ))}
-                  <Pressable
-                    onPress={() => router.push('/session')}
-                    accessibilityRole="button"
-                    accessibilityLabel="Editar el texto con sugerencias de frases"
-                    style={styles.senalesAccion}
-                  >
-                    <Text style={styles.senalesAccionTexto}>Editar con sugerencias</Text>
-                  </Pressable>
-                </Cristal>
-              </Animated.View>
-            ) : null}
           </View>
         </View>
 
@@ -425,52 +319,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 8,
   },
-  barra: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  barraLado: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  barraDerecha: {
-    justifyContent: 'flex-end',
-  },
-  botonRedondo: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    height: 38,
-    paddingHorizontal: 12,
-    borderRadius: 19,
-    flexShrink: 1,
-  },
   punto: {
     width: 8,
     height: 8,
     borderRadius: 4,
-  },
-  chipTexto: {
-    fontFamily: FUENTE.normal,
-    fontSize: 12,
-    color: COLOR.texto,
-    flexShrink: 1,
-  },
-  simulado: {
-    fontFamily: FUENTE.negrita,
-    fontSize: 11,
-    color: COLOR.voz,
   },
   avisos: {
     flexDirection: 'row',
@@ -530,46 +382,6 @@ const styles = StyleSheet.create({
   },
   grande: {
     flex: 1,
-  },
-  senales: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  senalesCara: {
-    padding: 14,
-    gap: 4,
-  },
-  senalesTitulo: {
-    fontFamily: FUENTE.negrita,
-    fontSize: 14,
-    color: COLOR.guante,
-    marginBottom: 2,
-  },
-  senalesLinea: {
-    fontFamily: FUENTE.normal,
-    fontSize: 12,
-    color: COLOR.texto,
-  },
-  senalesTenue: {
-    fontFamily: FUENTE.normal,
-    fontSize: 12,
-    color: COLOR.tenue,
-  },
-  senalesAccion: {
-    alignSelf: 'flex-start',
-    marginTop: 8,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLOR.borde,
-  },
-  senalesAccionTexto: {
-    fontFamily: FUENTE.negrita,
-    fontSize: 12,
-    color: COLOR.suave,
   },
   riel: {
     width: ANCHO_RIEL,

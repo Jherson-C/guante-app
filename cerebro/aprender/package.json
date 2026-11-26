@@ -1,0 +1,13 @@
+{
+  "name": "aprende-lsp",
+  "version": "1.0.0",
+  "description": "Modo aprender: practica el abecedario de la Lengua de Señas Peruana frente a la cámara",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^45.5.0"
+  }
+}

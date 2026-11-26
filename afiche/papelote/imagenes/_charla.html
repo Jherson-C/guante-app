@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Papelote – Diferente forma de comunicarnos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=block" rel="stylesheet">
+<style>
+  :root { --azul:#3B2BD4; --azul2:#5A4CEB; --azul3:#2A1EA6; --gris:#D4D6DE; --gris2:#EEF0F5; --negro:#1B1C29;
+          --blanco:#fff; --amarillo:#FFC94D; --piel1:#F3C59E; --piel2:#B97A50; }
+  @page { size: A4 portrait; margin: 0; }
+  @page horizontal { size: A4 landscape; margin: 0; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Nunito", "Segoe UI", sans-serif; color:var(--negro); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .hoja { width:210mm; height:297mm; position:relative; overflow:hidden; page-break-after:always; break-after:page; padding:7mm; display:flex; flex-direction:column; gap:5mm; align-items:center; }
+  .hoja.h { page: horizontal; width:297mm; height:210mm; }
+  .hoja:last-child { page-break-after:auto; break-after:auto; }
+  .corte { position:relative; flex:none; }
+  .pieza { position:relative; overflow:hidden; outline:0.25mm dashed #8a8a8a; }
+  .etiqueta { font:700 8.5pt/1.25 "Nunito", sans-serif; color:#555; margin-top:1.5mm; text-align:center; }
+  .etiqueta b { color:var(--azul); }
+  .tijera { color:#999; }
+  .fredoka { font-family:"Fredoka", "Nunito", sans-serif; }
+  svg { display:block; }
+
+  /* ---------- Guías ---------- */
+  .guia h1 { font:700 22pt/1.1 "Fredoka", sans-serif; color:var(--azul); align-self:flex-start; }
+  .guia p { font:700 10.5pt/1.4 "Nunito", sans-serif; align-self:flex-start; color:#333; }
+  .guia ul { align-self:flex-start; font:700 10pt/1.5 "Nunito", sans-serif; color:#333; padding-left:6mm; }
+  .mapa { position:relative; border:0.6mm solid var(--negro); flex:none; }
+  .mapa .zona { position:absolute; display:flex; align-items:flex-start; justify-content:center; font:800 9pt "Nunito"; color:#fff; padding-top:2mm; }
+  .mapa .pz { position:absolute; background:rgba(255,255,255,.9); border:0.5mm solid var(--azul); color:var(--azul);
+              font:800 11pt/1.1 "Nunito"; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .mapa .medida { position:absolute; font:800 8pt "Nunito"; color:#d03030; white-space:nowrap; }
+  .doblez { position:absolute; top:0; bottom:0; border-left:0.6mm dashed #d03030; }
+
+  /* ---------- Piezas ---------- */
+  .titulo { width:200mm; height:90mm; background:var(--azul); display:flex; align-items:center; justify-content:center; }
+  .titulo span { font:700 23mm/1 "Fredoka", sans-serif; color:#fff; letter-spacing:-0.5mm; white-space:nowrap; position:relative; }
+  .titulo span::after { content:""; position:absolute; left:4%; right:4%; bottom:-6mm; height:3.2mm; border-radius:3mm; background:var(--amarillo); }
+  .sub { width:200mm; height:50mm; background:var(--negro); color:#fff; display:flex; align-items:center; justify-content:center;
+         font:800 12.5mm/1 "Nunito", sans-serif; white-space:nowrap; }
+  .sub em { color:var(--amarillo); font-style:normal; }
+  .esquina { width:90mm; height:40mm; background:var(--negro); color:#fff; display:flex; flex-direction:column; justify-content:center; padding:0 6mm; }
+  .esquina b { font:700 9mm/1 "Fredoka"; letter-spacing:.5mm; }
+  .esquina span { font:800 4.2mm/1.3 "Nunito"; color:var(--gris); margin-top:1.5mm; }
+
+  .card { padding:10mm; display:flex; flex-direction:column; }
+  .card h2 { font:700 14mm/1.02 "Fredoka", sans-serif; letter-spacing:-0.2mm; }
+  .card p { font:700 6.4mm/1.32 "Nunito", sans-serif; }
+  .azul { background:var(--azul); color:#fff; }
+  .blanco { background:#fff; color:var(--negro); }
+  .grisbg { background:var(--gris2); color:var(--negro); }
+  .negro { background:var(--negro); color:#fff; }
+  .chip { display:inline-block; font:800 5.2mm/1 "Nunito"; padding:2.4mm 4.5mm; border-radius:10mm; }
+  .grande { font:700 30mm/0.9 "Fredoka", sans-serif; letter-spacing:-1mm; }
+html,body{width:680px;height:472px;margin:0;overflow:hidden} body>div,#x,#flujo,#robot,#charla{width:680px;height:472px}</style>
+</head>
+<body><div id="charla" style="background:#EEF0F5"></div><div style="display:none"><svg id="chispa1"></svg><svg id="iconoCamara"></svg><svg id="iconoMapa"></svg><div id="beneficios"></div><div id="mapaPortada"></div><div id="mapaFondo"></div><div id="flujo"></div><div id="robot"></div><div id="abecedario"></div></div><script>
+// Colores
+const AZ = '#3B2BD4', AZ2 = '#5A4CEB', AZ3 = '#2A1EA6', GR = '#D4D6DE', GR2 = '#EEF0F5', NE = '#1B1C29', AM = '#FFC94D', P1 = '#F3C59E', P2 = '#B97A50', PELO = '#2A1F2D';
+const chispa = (x, y, r, c = AM) => `<path d="M${x} ${y - r}C${x + r * .18} ${y - r * .18} ${x + r * .18} ${y - r * .18} ${x + r} ${y}C${x + r * .18} ${y + r * .18} ${x + r * .18} ${y + r * .18} ${x} ${y + r}C${x - r * .18} ${y + r * .18} ${x - r * .18} ${y + r * .18} ${x - r} ${y}C${x - r * .18} ${y - r * .18} ${x - r * .18} ${y - r * .18} ${x} ${y - r}Z" fill="${c}"/>`;
+
+// ---------- Escena de portada (800 × 540; cada tapa muestra su mitad) ----------
+const manoHola = (ox, oy, s, piel) => {   // mano abierta saludando, con los puntos que mide la cámara
+  const P = (x, y) => [ox + x * s, oy + y * s];
+  const dedos = [[-27, -62, 44], [-9, -72, 54], [9, -68, 50], [26, -56, 40]];
+  let g = `<rect x="${ox - 34 * s}" y="${oy - 30 * s}" width="${68 * s}" height="${62 * s}" rx="${24 * s}" fill="${piel}"/>`;
+  for (const [dx, dy, h] of dedos) g += `<rect x="${ox + (dx - 8) * s}" y="${oy + dy * s}" width="${16 * s}" height="${h * s}" rx="${8 * s}" fill="${piel}"/>`;
+  g += `<rect x="${ox + 22 * s}" y="${oy - 12 * s}" width="${16 * s}" height="${44 * s}" rx="${8 * s}" fill="${piel}" transform="rotate(48 ${ox + 30 * s} ${oy + 10 * s})"/>`;
+  const muneca = P(0, 30), bases = [P(-27, -16), P(-9, -20), P(9, -18), P(26, -14)], puntas = [P(-27, -56), P(-9, -66), P(9, -62), P(26, -50)], pulgar = [P(26, 10), P(44, -6), P(58, -20)];
+  let l = '', d = '';
+  for (let i = 0; i < 4; i++) { const [bx, by] = bases[i], [tx, ty] = puntas[i]; l += `M${muneca[0]} ${muneca[1]}L${bx} ${by}L${tx} ${ty}`; d += [bases[i], [(bx + tx) / 2, (by + ty) / 2], puntas[i]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${4.2 * s}"/>`).join(''); }
+  l += `M${muneca[0]} ${muneca[1]}L${pulgar[0][0]} ${pulgar[0][1]}L${pulgar[1][0]} ${pulgar[1][1]}L${pulgar[2][0]} ${pulgar[2][1]}M${bases[0][0]} ${bases[0][1]}L${bases[3][0]} ${bases[3][1]}`;
+  d += [muneca, ...pulgar].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${4.2 * s}"/>`).join('');
+  return g + `<path d="${l}" stroke="#fff" stroke-width="${2.6 * s}" fill="none" stroke-linecap="round" opacity=".95"/><g fill="${AM}" stroke="${NE}" stroke-width="${1.2 * s}">${d}</g>`;
+};
+const ESCENA = `
+  <rect width="800" height="540" fill="${AZ}"/>
+  <circle cx="200" cy="330" r="190" fill="${AZ2}"/><circle cx="610" cy="330" r="190" fill="${AZ2}"/>
+  <path d="M0 470 C150 430 280 520 400 480 C520 440 650 520 800 470 L800 540 L0 540Z" fill="${AZ3}"/>
+  ${chispa(60, 60, 16)}${chispa(345, 215, 11, '#fff')}${chispa(760, 70, 14)}${chispa(455, 230, 9, '#fff')}${chispa(36, 330, 9, '#fff')}${chispa(770, 320, 10, '#fff')}
+  <g fill="#fff" opacity=".35"><circle cx="300" cy="40" r="4"/><circle cx="330" cy="58" r="3"/><circle cx="520" cy="30" r="4"/><circle cx="545" cy="52" r="3"/></g>
+  <!-- Persona sorda: hace la seña -->
+  <path d="M132 255 C126 172 176 152 208 154 C262 157 286 198 276 258 L282 345 L252 338 L254 272 L150 272 L152 338 L122 345Z" fill="${PELO}"/>
+  <rect x="181" y="295" width="38" height="56" rx="8" fill="${P1}"/>
+  <path d="M60 540 C66 420 122 360 200 360 C278 360 334 420 340 540Z" fill="#fff"/>
+  <path d="M176 361 L200 394 L224 361Z" fill="${P1}"/>
+  <circle cx="200" cy="255" r="62" fill="${P1}"/>
+  <path d="M138 248 C146 196 190 182 216 188 C244 194 264 216 264 250 C246 222 214 212 188 220 C166 227 150 238 138 248Z" fill="${PELO}"/>
+  <circle cx="181" cy="262" r="7" fill="${NE}"/><circle cx="219" cy="262" r="7" fill="${NE}"/><circle cx="183.5" cy="259.5" r="2.2" fill="#fff"/><circle cx="221.5" cy="259.5" r="2.2" fill="#fff"/>
+  <circle cx="163" cy="282" r="10" fill="#F58E99" opacity=".45"/><circle cx="237" cy="282" r="10" fill="#F58E99" opacity=".45"/>
+  <path d="M180 287 Q200 306 220 287" stroke="${NE}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M120 418 C92 366 86 296 100 226" stroke="${P1}" stroke-width="40" fill="none" stroke-linecap="round"/>
+  <path d="M90 438 C96 404 106 390 122 378 L150 414 C138 424 128 434 122 446Z" fill="#fff"/>
+  ${manoHola(102, 196, 1.15, P1)}
+  <g><rect x="166" y="64" width="196" height="78" rx="39" fill="#fff"/><path d="M196 138 L170 168 L222 140Z" fill="#fff"/>
+    <text x="264" y="117" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="44" fill="${AZ}">¡HOLA!</text></g>
+  <!-- Persona oyente: responde hablando -->
+  <rect x="581" y="295" width="38" height="56" rx="8" fill="${P2}"/>
+  <path d="M460 540 C466 420 522 360 600 360 C678 360 734 420 740 540Z" fill="${GR}"/>
+  <path d="M576 361 L600 394 L624 361Z" fill="${P2}"/>
+  <circle cx="600" cy="255" r="62" fill="${P2}"/>
+  <path d="M540 246 C534 186 574 170 604 172 C642 174 668 196 662 246 C654 226 634 214 604 214 C576 214 556 226 540 246Z" fill="${PELO}"/>
+  <g fill="${PELO}"><circle cx="552" cy="210" r="16"/><circle cx="576" cy="186" r="17"/><circle cx="606" cy="178" r="18"/><circle cx="636" cy="188" r="17"/><circle cx="656" cy="212" r="15"/></g>
+  <circle cx="581" cy="262" r="7" fill="${NE}"/><circle cx="619" cy="262" r="7" fill="${NE}"/><circle cx="583.5" cy="259.5" r="2.2" fill="#fff"/><circle cx="621.5" cy="259.5" r="2.2" fill="#fff"/>
+  <circle cx="563" cy="282" r="10" fill="#E0707C" opacity=".4"/><circle cx="637" cy="282" r="10" fill="#E0707C" opacity=".4"/>
+  <ellipse cx="600" cy="293" rx="13" ry="10" fill="${NE}"/><ellipse cx="600" cy="298" rx="7" ry="3.5" fill="#E86B78"/>
+  <g stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round"><path d="M520 268 Q506 292 520 316"/><path d="M500 252 Q478 292 500 332"/><path d="M480 236 Q450 292 480 348" opacity=".6"/></g>
+  <g><rect x="448" y="56" width="300" height="94" rx="47" fill="#fff"/><path d="M668 146 L690 182 L640 148Z" fill="#fff"/>
+    <text x="598" y="98" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="30" fill="${AZ}">¡Hola!</text>
+    <text x="598" y="133" text-anchor="middle" font-family="Fredoka" font-weight="600" font-size="27" fill="${NE}">¿Cómo estás?</text></g>
+`;
+document.querySelectorAll('[data-escena]').forEach(el => { el.innerHTML = `<svg viewBox="${el.dataset.escena}" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%">${ESCENA}</svg>`; });
+
+// ---------- Íconos ----------
+document.getElementById('chispa1').innerHTML = chispa(20, 20, 18, AM);
+document.getElementById('iconoCamara').innerHTML = `<circle cx="60" cy="60" r="58" fill="${GR2}"/>
+  <rect x="18" y="38" width="60" height="44" rx="12" fill="${AZ}"/><circle cx="48" cy="60" r="14" fill="#fff"/><circle cx="48" cy="60" r="7" fill="${NE}"/>
+  <rect x="34" y="82" width="28" height="8" rx="4" fill="${NE}"/>${manoHola(92, 66, 0.42, P2)}${chispa(100, 22, 8)}`;
+document.getElementById('iconoMapa').innerHTML = `<circle cx="60" cy="60" r="58" fill="#fff"/>
+  <path d="M60 20 C42 20 30 34 30 50 C30 72 60 100 60 100 C60 100 90 72 90 50 C90 34 78 20 60 20Z" fill="${AZ}"/><circle cx="60" cy="50" r="13" fill="#fff"/>
+  <text x="60" y="56" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="16" fill="${AZ}">PE</text>${chispa(96, 26, 8)}`;
+
+// ---------- Cómo funciona (270 × 180 mm → viewBox 1350 × 900) ----------
+const paso = (x, n, titulo, l1, l2, icono) => `<g><circle cx="${x}" cy="300" r="125" fill="${GR2}"/>${icono}
+  <circle cx="${x - 92}" cy="200" r="32" fill="${AZ}"/><text x="${x - 92}" y="213" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="38" fill="#fff">${n}</text>
+  <text x="${x}" y="490" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="40" fill="${NE}">${titulo}</text>
+  <text x="${x}" y="540" text-anchor="middle" font-family="Nunito" font-weight="700" font-size="30" fill="#555">${l1}</text>
+  <text x="${x}" y="578" text-anchor="middle" font-family="Nunito" font-weight="700" font-size="30" fill="#555">${l2}</text></g>`;
+const flecha = x => `<path d="M${x - 34} 300 H${x + 22}" stroke="${AZ}" stroke-width="10" stroke-linecap="round"/><path d="M${x + 16} 282 L${x + 40} 300 L${x + 16} 318Z" fill="${AZ}"/>`;
+const xs = [190, 520, 850, 1170];
+document.getElementById('flujo').innerHTML = `<svg viewBox="0 0 1350 900" style="width:100%;height:100%">
+  <text x="60" y="100" font-family="Fredoka" font-weight="700" font-size="62" fill="${AZ}">De la seña a la voz, en el momento</text>
+  ${paso(xs[0], 1, 'Haces la seña', 'frente a la', 'cámara', manoHola(xs[0], 330, 1.25, P1))}
+  ${flecha(355)}
+  ${paso(xs[1], 2, 'La cámara ve', '21 puntos', 'en cada mano', `<rect x="${xs[1] - 70}" y="250" width="140" height="100" rx="24" fill="${AZ}"/><circle cx="${xs[1]}" cy="300" r="34" fill="#fff"/><circle cx="${xs[1]}" cy="300" r="17" fill="${NE}"/><rect x="${xs[1] - 30}" y="350" width="60" height="16" rx="8" fill="${NE}"/>`)}
+  ${flecha(685)}
+  ${paso(xs[2], 3, 'El robot entiende', 'Arduino UNO Q con', 'inteligencia artificial', `<rect x="${xs[2] - 78}" y="246" width="156" height="110" rx="14" fill="#0E8A8F"/><rect x="${xs[2] - 30}" y="272" width="60" height="58" rx="8" fill="${NE}"/>${[0, 1, 2, 3].map(i => `<rect x="${xs[2] - 60 + i * 34}" y="232" width="10" height="18" rx="3" fill="${AM}"/>`).join('')}${chispa(xs[2] + 60, 236, 14)}`)}
+  ${flecha(1010)}
+  ${paso(xs[3], 4, 'Texto y voz', 'en la pantalla', 'de la tablet', `<rect x="${xs[3] - 80}" y="240" width="140" height="110" rx="14" fill="${NE}"/><rect x="${xs[3] - 70}" y="250" width="120" height="90" rx="6" fill="#fff"/><text x="${xs[3] - 10}" y="306" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="30" fill="${AZ}">HOLA</text><g stroke="${AZ}" stroke-width="8" fill="none" stroke-linecap="round"><path d="M${xs[3] + 74} 280 Q${xs[3] + 88} 300 ${xs[3] + 74} 320"/><path d="M${xs[3] + 92} 266 Q${xs[3] + 114} 300 ${xs[3] + 92} 334"/></g>`)}
+  <rect x="60" y="680" width="1230" height="150" rx="75" fill="${AZ}"/>
+  <g stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round"><path d="M150 735 Q138 755 150 775"/><path d="M130 722 Q110 755 130 788"/></g>
+  <circle cx="190" cy="755" r="26" fill="${AM}"/><text x="190" y="766" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="30" fill="${NE}">↩</text>
+  <text x="240" y="745" font-family="Fredoka" font-weight="700" font-size="42" fill="#fff">Y de vuelta: la persona oyente habla</text>
+  <text x="240" y="795" font-family="Nunito" font-weight="800" font-size="32" fill="${GR}">y su voz aparece escrita en la misma pantalla.</text>
+</svg>`;
+
+// ---------- Robot: percibe, decide, actúa (180 × 180 mm → 900 × 900) ----------
+const fila = (y, verbo, que, icono) => `<g><circle cx="140" cy="${y}" r="70" fill="${AZ2}"/>${icono}
+  <text x="240" y="${y - 10}" font-family="Fredoka" font-weight="700" font-size="54" fill="#fff">${verbo}</text>
+  <text x="240" y="${y + 40}" font-family="Nunito" font-weight="800" font-size="31" fill="${GR}">${que}</text></g>`;
+document.getElementById('robot').innerHTML = `<svg viewBox="0 0 900 900" style="width:100%;height:100%">
+  <text x="60" y="110" font-family="Fredoka" font-weight="700" font-size="66" fill="#fff">¿Por qué es un robot?</text>
+  ${chispa(820, 80, 26)}
+  ${fila(260, 'Percibe', 'la cámara ve tus manos', `<rect x="102" y="232" width="76" height="56" rx="14" fill="#fff"/><circle cx="140" cy="260" r="17" fill="${AZ}"/>`)}
+  ${fila(460, 'Decide', 'el Arduino reconoce la seña', `<rect x="104" y="424" width="72" height="72" rx="12" fill="#fff"/><rect x="124" y="444" width="32" height="32" rx="5" fill="${AZ}"/>`)}
+  ${fila(660, 'Actúa', 'un motor gira la pantalla', `<circle cx="140" cy="660" r="34" fill="none" stroke="#fff" stroke-width="12" stroke-dasharray="14 9"/><circle cx="140" cy="660" r="12" fill="#fff"/>`)}
+  <text x="60" y="830" font-family="Nunito" font-weight="800" font-size="30" fill="${AM}">Base giratoria con servomotor MG995</text>
+</svg>`;
+
+// ---------- Conversación en la tablet (190 × 130 mm → 950 × 650) ----------
+document.getElementById('charla').innerHTML = `<svg viewBox="0 0 950 650" style="width:100%;height:100%">
+  <text x="50" y="80" font-family="Fredoka" font-weight="700" font-size="52" fill="${AZ}">Una charla real</text>
+  <rect x="50" y="120" width="850" height="480" rx="36" fill="${NE}"/><rect x="74" y="144" width="802" height="432" rx="18" fill="#fff"/>
+  <rect x="104" y="180" width="440" height="110" rx="55" fill="${AZ}"/><text x="140" y="250" font-family="Fredoka" font-weight="700" font-size="44" fill="#fff">Hola, soy Ana</text>
+  <rect x="330" y="320" width="520" height="110" rx="55" fill="${GR}"/><text x="365" y="390" font-family="Fredoka" font-weight="700" font-size="42" fill="${NE}">¡Hola Ana! ¿Qué tal?</text>
+  <rect x="104" y="460" width="380" height="90" rx="45" fill="${AZ}" opacity=".9"/><text x="140" y="518" font-family="Fredoka" font-weight="700" font-size="40" fill="#fff">Muy bien, ¿y tú?</text>
+</svg>`;
+
+// ---------- Abecedario (puntos reales sacados de los videos) ----------
+const ESQ = {"A": [[0.8, 0.73], [0.537, 0.603], [0.327, 0.335], [0.168, 0.138], [0.0, 0.022], [0.45, 0.134], [0.4, 0.0], [0.463, 0.196], [0.517, 0.353], [0.631, 0.115], [0.577, 0.0], [0.626, 0.25], [0.663, 0.407], [0.819, 0.118], [0.766, 0.012], [0.776, 0.255], [0.782, 0.406], [1.0, 0.14], [0.948, 0.023], [0.917, 0.175], [0.908, 0.276]], "B": [[0.215, 1.0], [0.063, 0.913], [0.0, 0.758], [0.125, 0.658], [0.251, 0.616], [0.033, 0.509], [0.013, 0.305], [0.016, 0.18], [0.028, 0.073], [0.15, 0.483], [0.13, 0.258], [0.124, 0.12], [0.12, 0.0], [0.253, 0.502], [0.241, 0.295], [0.225, 0.17], [0.21, 0.057], [0.357, 0.563], [0.344, 0.392], [0.326, 0.286], [0.311, 0.19]], "C": [[0.979, 1.0], [0.665, 0.962], [0.421, 0.837], [0.192, 0.819], [0.0, 0.78], [0.589, 0.355], [0.463, 0.073], [0.263, 0.013], [0.095, 0.025], [0.667, 0.342], [0.475, 0.026], [0.226, 0.0], [0.063, 0.055], [0.746, 0.38], [0.554, 0.076], [0.298, 0.036], [0.117, 0.075], [0.811, 0.468], [0.642, 0.225], [0.445, 0.144], [0.282, 0.136]], "D": [[0.666, 1.0], [0.45, 0.944], [0.287, 0.837], [0.125, 0.792], [0.0, 0.725], [0.437, 0.486], [0.415, 0.245], [0.377, 0.106], [0.351, 0.0], [0.517, 0.494], [0.375, 0.278], [0.194, 0.307], [0.093, 0.39], [0.587, 0.538], [0.45, 0.335], [0.258, 0.353], [0.147, 0.419], [0.646, 0.613], [0.529, 0.443], [0.376, 0.41], [0.262, 0.431]], "E": [[0.408, 0.995], [0.188, 1.0], [0.0, 0.864], [0.014, 0.736], [0.159, 0.675], [0.103, 0.391], [0.082, 0.079], [0.046, 0.151], [0.057, 0.292], [0.268, 0.36], [0.271, 0.0], [0.204, 0.122], [0.207, 0.287], [0.428, 0.375], [0.453, 0.044], [0.366, 0.126], [0.348, 0.285], [0.607, 0.441], [0.62, 0.186], [0.528, 0.196], [0.471, 0.301]], "F": [[0.314, 1.0], [0.162, 0.97], [0.023, 0.876], [0.0, 0.783], [0.084, 0.721], [0.102, 0.547], [0.083, 0.348], [0.061, 0.351], [0.052, 0.415], [0.211, 0.513], [0.183, 0.275], [0.169, 0.125], [0.161, 0.0], [0.316, 0.526], [0.29, 0.312], [0.271, 0.172], [0.256, 0.051], [0.424, 0.583], [0.405, 0.41], [0.384, 0.3], [0.366, 0.2]], "G": [[0.97, 0.769], [0.697, 0.616], [0.487, 0.422], [0.275, 0.34], [0.076, 0.315], [0.721, 0.031], [0.368, 0.015], [0.163, 0.017], [0.0, 0.0], [0.833, 0.013], [0.461, 0.149], [0.566, 0.324], [0.697, 0.354], [0.932, 0.077], [0.547, 0.234], [0.652, 0.377], [0.775, 0.373], [1.0, 0.187], [0.684, 0.269], [0.72, 0.365], [0.801, 0.379]], "H": [[1.0, 0.462], [0.944, 0.232], [0.757, 0.13], [0.555, 0.164], [0.43, 0.232], [0.679, 0.061], [0.376, 0.017], [0.21, 0.012], [0.086, 0.0], [0.641, 0.191], [0.319, 0.136], [0.137, 0.093], [0.0, 0.073], [0.612, 0.337], [0.394, 0.28], [0.481, 0.291], [0.565, 0.301], [0.605, 0.475], [0.439, 0.388], [0.509, 0.385], [0.585, 0.394]], "I": [[0.509, 1.0], [0.289, 0.942], [0.09, 0.779], [0.0, 0.627], [0.063, 0.526], [0.215, 0.539], [0.123, 0.464], [0.117, 0.62], [0.136, 0.752], [0.33, 0.513], [0.21, 0.453], [0.23, 0.659], [0.261, 0.806], [0.458, 0.495], [0.332, 0.415], [0.333, 0.612], [0.35, 0.76], [0.587, 0.481], [0.518, 0.256], [0.481, 0.121], [0.444, 0.0]], "J": [[0.951, 0.755], [1.0, 0.472], [0.835, 0.172], [0.63, 0.0], [0.469, 0.014], [0.826, 0.198], [0.507, 0.039], [0.528, 0.118], [0.601, 0.182], [0.71, 0.338], [0.389, 0.185], [0.448, 0.272], [0.549, 0.331], [0.585, 0.481], [0.296, 0.302], [0.345, 0.369], [0.432, 0.429], [0.469, 0.624], [0.22, 0.467], [0.096, 0.412], [0.0, 0.37]], "K": [[0.911, 1.0], [0.802, 0.776], [0.548, 0.583], [0.308, 0.479], [0.176, 0.35], [0.587, 0.409], [0.289, 0.236], [0.122, 0.114], [0.0, 0.0], [0.613, 0.542], [0.167, 0.555], [0.136, 0.64], [0.166, 0.661], [0.605, 0.723], [0.182, 0.773], [0.267, 0.848], [0.395, 0.843], [0.583, 0.911], [0.238, 0.912], [0.309, 0.958], [0.432, 0.953]], "L": [[0.66, 1.0], [0.475, 0.925], [0.29, 0.784], [0.136, 0.726], [0.0, 0.722], [0.459, 0.494], [0.432, 0.266], [0.429, 0.12], [0.434, 0.0], [0.621, 0.472], [0.574, 0.509], [0.546, 0.691], [0.534, 0.809], [0.762, 0.515], [0.697, 0.589], [0.646, 0.743], [0.613, 0.831], [0.887, 0.586], [0.842, 0.623], [0.756, 0.725], [0.692, 0.782]], "M": [[0.769, 0.068], [0.475, 0.0], [0.276, 0.153], [0.185, 0.356], [0.179, 0.51], [0.249, 0.21], [0.121, 0.527], [0.055, 0.721], [0.0, 0.857], [0.416, 0.247], [0.309, 0.621], [0.234, 0.849], [0.184, 1.0], [0.585, 0.289], [0.514, 0.659], [0.448, 0.833], [0.399, 0.927], [0.743, 0.329], [0.682, 0.586], [0.634, 0.658], [0.602, 0.678]], "N": [[0.813, 0.05], [0.502, 0.0], [0.267, 0.161], [0.197, 0.413], [0.208, 0.625], [0.225, 0.138], [0.103, 0.49], [0.046, 0.712], [0.0, 0.881], [0.424, 0.159], [0.345, 0.59], [0.292, 0.822], [0.264, 1.0], [0.626, 0.208], [0.564, 0.561], [0.555, 0.515], [0.559, 0.433], [0.8, 0.26], [0.716, 0.551], [0.695, 0.51], [0.689, 0.41]], "Ñ": [[0.429, 0.0], [0.236, 0.116], [0.08, 0.288], [0.063, 0.516], [0.074, 0.683], [0.163, 0.12], [0.046, 0.474], [0.012, 0.709], [0.0, 0.893], [0.394, 0.104], [0.334, 0.648], [0.341, 0.866], [0.343, 1.0], [0.61, 0.132], [0.533, 0.629], [0.536, 0.652], [0.527, 0.593], [0.756, 0.193], [0.688, 0.564], [0.657, 0.601], [0.621, 0.567]], "O": [[0.847, 1.0], [0.522, 0.846], [0.287, 0.654], [0.094, 0.539], [0.0, 0.401], [0.628, 0.213], [0.349, 0.034], [0.138, 0.105], [0.004, 0.208], [0.714, 0.206], [0.354, 0.0], [0.125, 0.097], [0.005, 0.237], [0.772, 0.244], [0.449, 0.044], [0.205, 0.103], [0.065, 0.225], [0.788, 0.322], [0.52, 0.159], [0.321, 0.134], [0.182, 0.172]], "P": [[1.0, 0.008], [0.677, 0.0], [0.431, 0.129], [0.308, 0.335], [0.244, 0.517], [0.253, 0.155], [0.0, 0.422], [0.002, 0.659], [0.049, 0.78], [0.362, 0.158], [0.006, 0.427], [0.028, 0.669], [0.122, 0.784], [0.515, 0.204], [0.301, 0.59], [0.399, 0.704], [0.489, 0.67], [0.693, 0.277], [0.553, 0.627], [0.599, 0.661], [0.646, 0.58]], "Q": [[1.0, 0.164], [0.691, 0.29], [0.447, 0.388], [0.311, 0.553], [0.261, 0.712], [0.207, 0.045], [0.091, 0.339], [0.047, 0.53], [0.0, 0.674], [0.298, 0.0], [0.275, 0.382], [0.421, 0.385], [0.511, 0.312], [0.445, 0.014], [0.416, 0.393], [0.548, 0.357], [0.613, 0.263], [0.599, 0.072], [0.537, 0.35], [0.607, 0.354], [0.657, 0.305]], "R": [[0.06, 1.0], [0.217, 0.911], [0.309, 0.767], [0.346, 0.647], [0.344, 0.538], [0.211, 0.508], [0.217, 0.306], [0.215, 0.175], [0.214, 0.058], [0.124, 0.512], [0.11, 0.268], [0.137, 0.122], [0.154, 0.0], [0.05, 0.564], [0.132, 0.39], [0.239, 0.482], [0.29, 0.577], [0.0, 0.649], [0.12, 0.546], [0.218, 0.605], [0.272, 0.677]], "S": [[0.53, 1.0], [0.245, 0.881], [0.0, 0.552], [0.037, 0.313], [0.268, 0.273], [0.333, 0.067], [0.138, 0.0], [0.117, 0.31], [0.198, 0.421], [0.58, 0.075], [0.299, 0.08], [0.296, 0.424], [0.411, 0.482], [0.778, 0.151], [0.494, 0.205], [0.47, 0.51], [0.583, 0.561], [0.964, 0.283], [0.682, 0.338], [0.639, 0.552], [0.722, 0.603]], "T": [[0.277, 1.0], [0.136, 0.762], [0.106, 0.524], [0.111, 0.346], [0.107, 0.182], [0.386, 0.352], [0.31, 0.112], [0.179, 0.031], [0.077, 0.0], [0.471, 0.411], [0.113, 0.363], [0.0, 0.537], [0.025, 0.646], [0.482, 0.524], [0.096, 0.517], [0.053, 0.67], [0.118, 0.735], [0.461, 0.645], [0.149, 0.626], [0.106, 0.727], [0.163, 0.779]], "U": [[0.336, 1.0], [0.16, 0.928], [0.001, 0.752], [0.0, 0.618], [0.127, 0.578], [0.097, 0.47], [0.076, 0.247], [0.074, 0.12], [0.093, 0.0], [0.233, 0.471], [0.172, 0.423], [0.186, 0.633], [0.207, 0.748], [0.368, 0.496], [0.3, 0.439], [0.3, 0.648], [0.307, 0.781], [0.499, 0.528], [0.477, 0.317], [0.462, 0.194], [0.447, 0.062]], "V": [[0.216, 1.0], [0.067, 0.963], [0.0, 0.866], [0.113, 0.845], [0.258, 0.817], [0.077, 0.545], [0.045, 0.328], [0.028, 0.188], [0.03, 0.062], [0.233, 0.544], [0.295, 0.297], [0.346, 0.141], [0.401, 0.0], [0.345, 0.611], [0.423, 0.556], [0.351, 0.715], [0.293, 0.827], [0.427, 0.714], [0.444, 0.738], [0.369, 0.849], [0.307, 0.923]], "W": [[0.314, 1.0], [0.169, 0.994], [0.13, 0.91], [0.258, 0.852], [0.414, 0.784], [0.115, 0.592], [0.053, 0.362], [0.019, 0.215], [0.0, 0.077], [0.274, 0.553], [0.287, 0.292], [0.304, 0.149], [0.322, 0.0], [0.412, 0.578], [0.504, 0.403], [0.559, 0.27], [0.624, 0.113], [0.515, 0.652], [0.508, 0.615], [0.46, 0.702], [0.441, 0.779]], "X": [[0.344, 1.0], [0.193, 0.76], [0.105, 0.572], [0.033, 0.435], [0.0, 0.36], [0.458, 0.316], [0.402, 0.054], [0.265, 0.0], [0.154, 0.024], [0.522, 0.389], [0.181, 0.305], [0.113, 0.447], [0.179, 0.521], [0.504, 0.508], [0.121, 0.47], [0.111, 0.589], [0.201, 0.624], [0.443, 0.624], [0.129, 0.598], [0.113, 0.669], [0.188, 0.693]], "Y": [[0.441, 0.652], [0.284, 0.542], [0.18, 0.351], [0.098, 0.207], [0.0, 0.118], [0.363, 0.18], [0.348, 0.156], [0.31, 0.315], [0.29, 0.436], [0.494, 0.202], [0.473, 0.182], [0.411, 0.355], [0.363, 0.479], [0.613, 0.252], [0.624, 0.208], [0.545, 0.356], [0.483, 0.466], [0.72, 0.312], [0.84, 0.173], [0.927, 0.088], [1.0, 0.0]], "Z": [[0.396, 0.792], [0.122, 0.654], [0.0, 0.389], [0.05, 0.142], [0.219, 0.0], [0.225, 0.324], [0.279, 0.289], [0.272, 0.372], [0.226, 0.444], [0.475, 0.441], [0.48, 0.481], [0.409, 0.571], [0.319, 0.649], [0.685, 0.608], [0.634, 0.693], [0.584, 0.78], [0.527, 0.851], [0.85, 0.793], [0.809, 0.878], [0.773, 0.942], [0.731, 1.0]]};
+const HUESOS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[9,10],[10,11],[11,12],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
+const abc = document.getElementById('abecedario');
+for (const [letra, p] of Object.entries(ESQ)) {
+  const xs2 = p.map(q => q[0]), ys2 = p.map(q => q[1]);
+  const cx = (Math.min(...xs2) + Math.max(...xs2)) / 2, cy = (Math.min(...ys2) + Math.max(...ys2)) / 2;
+  const P = p.map(([x, y]) => [50 + (x - cx) * 80, 46 + (y - cy) * 80]);
+  abc.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 100 112" style="width:100%"><g stroke="#fff" stroke-width="2.6" stroke-linecap="round">${HUESOS.map(([a, b]) => `<line x1="${P[a][0]}" y1="${P[a][1]}" x2="${P[b][0]}" y2="${P[b][1]}"/>`).join('')}</g>
+    <g fill="${AM}">${P.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${[4, 8, 12, 16, 20].includes(i) ? 3.8 : 2.6}"/>`).join('')}</g>
+    <text x="50" y="108" text-anchor="middle" font-family="Fredoka" font-weight="700" font-size="16" fill="#fff">${letra}</text></svg>`);
+}
+
+</script></body></html>

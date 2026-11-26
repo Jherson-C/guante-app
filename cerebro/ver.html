@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traductor LSP · en vivo</title>
+<style>
+  :root { --azul:#3B2BD4; --azul2:#5A4CEB; --negro:#1B1C29; --negro2:#262838; --gris:#D4D6DE; --amarillo:#FFC94D; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { min-height:100vh; background:var(--negro); color:#fff; font-family:"Nunito","Segoe UI",system-ui,sans-serif;
+         display:flex; flex-direction:column; padding:20px; gap:16px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  header b { font-size:20px; }
+  .vivo { display:flex; align-items:center; gap:8px; font-weight:800; font-size:14px; color:var(--gris); }
+  .vivo i { width:10px; height:10px; border-radius:50%; background:#FF6B6B; }
+  .vivo.ok i { background:#3FBF7F; animation:late 1.4s infinite; }
+  @keyframes late { 50% { opacity:.35 } }
+  .tarjeta { background:var(--negro2); border-radius:22px; padding:20px 22px; }
+  .etq { font-size:13px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--gris); }
+  .ahora { font-size:clamp(64px, 22vw, 150px); font-weight:900; line-height:1; color:var(--amarillo); min-height:1em; margin-top:6px; }
+  .texto { font-size:clamp(28px, 8vw, 52px); font-weight:900; line-height:1.15; margin-top:8px; word-break:break-word; min-height:1.2em; }
+  .frase { background:var(--azul); }
+  .frase .texto { color:#fff; }
+  footer { margin-top:auto; font-size:14px; color:var(--gris); line-height:1.4; }
+</style>
+</head>
+<body>
+<header><b>Traductor de LSP</b><span class="vivo" id="vivo"><i></i><span id="vivoTexto">conectando…</span></span></header>
+<section class="tarjeta"><div class="etq">Seña que ve ahora</div><div class="ahora" id="ahora">—</div></section>
+<section class="tarjeta"><div class="etq">Lo que va diciendo</div><div class="texto" id="texto">—</div></section>
+<section class="tarjeta frase"><div class="etq" style="color:#EEF0F5">Última frase</div><div class="texto" id="frase">—</div></section>
+<footer>Proyecto del Taller de Robótica 2026 · UPN. Una cámara reconoce la Lengua de Señas Peruana sin guantes.</footer>
+<script>
+const $ = id => document.getElementById(id);
+async function leer() {
+  try {
+    const e = await (await fetch('/estado', { cache: 'no-store' })).json();
+    $('vivo').classList.add('ok'); $('vivoTexto').textContent = 'en vivo';
+    $('ahora').textContent = e.ahora && e.ahora !== 'REPOSO' && e.ahora !== 'TRANSICION' ? e.ahora : '—';
+    // Letras seguidas forman palabra; las palabras van separadas.
+    const xs = (e.emitidas || []).slice(-14);
+    $('texto').textContent = xs.length ? xs.reduce((t, s, i) => t + (i && (s.length > 1 || xs[i - 1].length > 1) ? ' ' : '') + s, '') : '—';
+    $('frase').textContent = e.frase || '—';
+  } catch {
+    $('vivo').classList.remove('ok'); $('vivoTexto').textContent = 'sin conexión';
+  }
+}
+setInterval(leer, 400); leer();
+</script>
+</body>
+</html>

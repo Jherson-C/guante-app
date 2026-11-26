@@ -9,8 +9,7 @@ Hecha con [Expo](https://expo.dev) (SDK 58), React Native y Expo Router.
 - **Pantalla grande en horizontal:** el teléfono va sobre la base giratoria, entre las dos personas, y muestra un solo texto lo más grande posible.
 - **Guantes → voz:** lo que firma la persona sorda se dice en voz alta y la base gira la pantalla hacia el oyente.
 - **Voz → texto:** el micrófono escucha solo desde que se abre la conversación. Lo que dice el oyente aparece en grande y la base gira la pantalla hacia la persona sorda para que lo lea.
-- **Dos guantes a la vez:** el derecho y el izquierdo escriben en el mismo texto.
-- **Editor con sugerencias:** completa frases del catálogo con tildes y signos.
+- **Una sola conexión, "Guantes":** el cerebro (Arduino UNO Q) recibe los dos guantes y la app solo se conecta a él.
 - **Entrenamiento del guante:** se hace desde la página web `Entrenando Guante.html` (ver abajo).
 - **Privacidad:** el texto vive solo en memoria y se pierde al cerrar la app. No se guarda audio ni texto.
 
@@ -18,12 +17,15 @@ Hecha con [Expo](https://expo.dev) (SDK 58), React Native y Expo Router.
 
 | Dispositivo | Placa | Nombre BLE | Código |
 |---|---|---|---|
-| Guante derecho | ESP32 + 5 sensores de flexión + MPU6050 | `GuanteLSP-D` | [guante_estatico/](guante_estatico/guante_estatico.ino) |
-| Guante izquierdo | ESP32 + 5 sensores de flexión + MPU6050 | `GuanteLSP-I` | [guante_estatico/](guante_estatico/guante_estatico.ino) |
+| Cerebro | Arduino UNO Q | `GuanteLSP-D` | [cerebro/](cerebro/cerebro.py) |
+| Guante derecho | ESP32 + 5 sensores de flexión + MPU6050 | `GuanteLSP-SD` | [guante_estatico/](guante_estatico/guante_estatico.ino) |
+| Guante izquierdo | ESP32 + 5 sensores de flexión + MPU6050 | `GuanteLSP-SI` | [guante_estatico/](guante_estatico/guante_estatico.ino) |
 | Base giratoria | Arduino UNO + módulo HM-10 + servo | `BaseGiro` | [base_giratoria/](base_giratoria/base_giratoria.ino) |
 | Base giratoria (alternativa) | ESP32 + servo | `BaseGiro` | [base_giratoria_esp32/](base_giratoria_esp32/base_giratoria_esp32.ino) |
 
-**Guantes:** los dos usan el mismo firmware. Antes de cargarlo, cambia `DEVICE_NAME` según la mano: `"GuanteLSP-D"` para la derecha y `"GuanteLSP-I"` para la izquierda. El derecho también conecta con el nombre antiguo `GuanteLSP`.
+**Cerebro (Arduino UNO Q):** [cerebro/cerebro.py](cerebro/cerebro.py) corre en el Linux de la placa. Recibe la telemetría `D:` de los dos guantes, reconoce las señas con k-NN (scikit-learn) mirando ventanas de ~0.5 s, así que entiende tanto señas quietas como señas con movimiento, y se anuncia ante la app como `GuanteLSP-D`; en la app aparece como **Guantes**. Por defecto (`--sin-qwen` lo apaga) junta las señas y Qwen 2.5 1.5B (Ollama, en la misma placa) arma la frase cuando la persona hace una pausa de 1.5 s; tarda unos 6 s, y solo se usa cuando hay varias palabras (una sola seña o un deletreo salen al instante). Cada frase armada se recuerda en `frases.json`: la segunda vez sale al instante, y en la página se puede corregir o escribir de antemano. La seña especial `TRANSICION` (pasar de una seña a otra) se graba como `REPOSO` y nunca se escribe: evita que los cambios de seña se confundan con señas con movimiento. Con el cerebro, los guantes se llaman `GuanteLSP-SD` y `GuanteLSP-SI`. Instrucciones de uso al inicio del script. Arranca solo al prender la placa con [cerebro.service](cerebro/cerebro.service) (instalación dentro del archivo).
+
+**Guantes:** los dos usan el mismo firmware. Antes de cargarlo, cambia `DEVICE_NAME` según la mano: `"GuanteLSP-SD"` para la derecha y `"GuanteLSP-SI"` para la izquierda. Para probar un guante sin cerebro, directo con la app, usa `"GuanteLSP-D"`.
 
 **Base giratoria:** el Arduino UNO no tiene Bluetooth propio, así que necesita un módulo **HM-10** o un clon BLE (AT-09, BT05, MLT-BT05, CC41-A). Un HC-05 o HC-06 **no sirve**, porque es Bluetooth clásico. Si no tienes HM-10, usa la versión ESP32: se presenta igual que un HM-10 y la app no necesita cambios. Las conexiones de cables están al principio de cada sketch.
 
@@ -68,7 +70,9 @@ En la web (`npx expo start --web`) no hay Bluetooth: solo se puede ver la pantal
 
 ## Entrenar el guante
 
-El entrenamiento se hace desde la PC con [Entrenando Guante.html](Entrenando%20Guante.html), que se conecta a un guante por Web Bluetooth. Desde ahí se calibra la mano (abierta y puño), se aprenden letras y frases nuevas (`LEARN` / `LEARNO`), se borran y se listan las señas, y se ven los sensores en vivo.
+Las señas se graban en el cerebro, desde la página que sirve la placa: la placa crea su propia red Wi-Fi al prenderse (**`GuanteLSP`**, contraseña **`guantelsp`**). Conecta el celular o la PC a esa red y abre **`http://guante.local:8000`** (o `http://10.42.0.1:8000`). En el celular, apaga los datos móviles antes; si Android avisa que la red no tiene internet, elige mantener la conexión. [cerebro/hoja_qr.html](cerebro/hoja_qr.html) tiene los dos códigos QR (Wi-Fi y página) para imprimir y pegar en la caja. Mientras tanto la placa no tiene internet (no le hace falta). Para volver al Wi-Fi de casa: `nmcli connection modify GuanteLSP connection.autoconnect no` y reiniciar. Ahí se calibra cada guante, se ven los sensores en vivo, se graba una lista de señas con cuenta atrás, se prueba al instante qué reconoce, se borran señas y se descarga una copia. Los guantes se reconectan solos si se apagan. El guante ya no aprende señas; solo hay que calibrarlo.
+
+La calibración (mano abierta y puño) se hace desde la PC con [Entrenando Guante.html](Entrenando%20Guante.html), que se conecta a un guante por Web Bluetooth y también muestra los sensores en vivo. Sus botones de aprender, borrar y listar señas ya no hacen nada con el firmware v3. También se puede calibrar desde el Monitor Serie (115200) con `CAL_OPEN` y `CAL_FIST`.
 
 Chrome solo permite Bluetooth en `localhost` o `https`, así que la página no funciona abriéndola con doble clic. Hay que servirla desde la carpeta del proyecto:
 
@@ -87,18 +91,19 @@ Luego abre `http://localhost:8000/Entrenando%20Guante.html` en **Chrome o Edge d
 
 Cada dispositivo tiene su propio botón **Conectar / Desconectar** por si uno falla. El Monitor Serie de cada placa muestra lo que recibe y envía.
 
-### Calibrar el giro de la base
+### La base busca a la persona sorda
 
-La base gira a dos posiciones: hacia la persona sorda (cuando habla el oyente) y hacia el oyente (cuando firma la persona sorda). Los ángulos están en `ANGULO_BASE`, en [src/ble/protocol.ts](src/ble/protocol.ts), y vienen en 0° y 180°. Usa los botones **Izquierda / Centro / Derecha** de la pantalla de conexión para ver hacia dónde queda cada ángulo, y cambia esos dos números según dónde se siente cada persona.
+La cámara USB va pegada arriba del teléfono, sobre la base, y su cable va a la laptop. La base barre de 0° a 180° parando para mirar; la persona que levanta las dos manos a la altura de la cara (como un mimo) queda elegida y la base la sigue. Solo lo que firma esa persona va al teléfono. Cuando el oyente habla, la app manda `T:OYENTE` y la base gira hacia él; al terminar la frase manda `T:SORDO` y vuelve a la persona sorda. Si la persona sorda no aparece por 5 s, la base vuelve a buscar.
+
+Los ajustes están al principio de la clase `Base`, en [cerebro/cerebro.py](cerebro/cerebro.py). Si al seguir una cara la base se aleja en vez de centrarla, cambia `SENTIDO_BASE` a `-1`.
 
 ## Estructura
 
 ```
 src/
   app/          Pantallas (Expo Router)
-    index.tsx         Conexión de los 3 dispositivos
+    index.tsx         Conexión de los guantes y la base
     conversacion.tsx  Conversación de dos vías
-    session.tsx       Editor con sugerencias
   ble/          Cliente Bluetooth y protocolo
   hooks/        Estado del guante, voz y turnos
   domain/       Frases y edición del texto

@@ -1,0 +1,7 @@
+Videos de guía (opcional)
+
+Si pones aquí un video corto de una letra, la app lo muestra en bucle en vez del dibujo.
+El nombre es la letra en mayúscula: A.mp4, B.mp4, ... Ñ.mp4, Z.mp4.
+
+Consejos: 2 a 4 segundos, de frente, fondo liso, sin sonido. Sirven sobre todo para J, Ñ y Z,
+que llevan movimiento. Mejor grabarlos ustedes mismos que bajarlos de internet.

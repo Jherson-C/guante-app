@@ -51,7 +51,7 @@ export interface GuanteEvents {
   onFrame(frame: Frame, linea: string): void;
 }
 
-/** Cliente de un dispositivo BLE de texto por líneas (guante o base). */
+/** Cliente de un dispositivo BLE de texto por líneas (el cerebro o un guante suelto). */
 export class DispositivoBle {
   private readonly manager = (managerCompartido ??= new BleManager());
   private idDispositivo: string | null = null;
@@ -280,7 +280,7 @@ export class DispositivoBle {
       },
       `monitor-${this.perfil.nombres[0]}`,
     );
-    // Dispositivos que no saludan solos (la base): su respuesta marca "operativo".
+    // El cerebro no saluda solo: su respuesta al saludo (OK:PONG) marca "operativo".
     if (this.perfil.saludo) this.enviar(this.perfil.saludo).catch(() => {});
   }
 

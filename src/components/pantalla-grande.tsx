@@ -103,7 +103,7 @@ export function PantallaGrande({ actual, previo }: Props) {
       <View style={styles.cabecera}>
         <Icono nombre={actual.fuente === 'guante' ? 'mano' : 'mic'} tamano={18} color={acento.color} />
         <Text style={[styles.nombre, { color: acento.color }]}>
-          {actual.fuente === 'guante' ? 'Guante · firmado' : 'Voz · dicho'}
+          {actual.fuente === 'guante' ? 'Señas · firmado' : 'Voz · dicho'}
         </Text>
       </View>
 
@@ -128,7 +128,7 @@ export function PantallaGrande({ actual, previo }: Props) {
       {previo ? (
         <Text style={styles.previo} numberOfLines={1}>
           <Text style={{ color: ACENTO[previo.fuente].color }}>
-            {previo.fuente === 'guante' ? 'Guante: ' : 'Voz: '}
+            {previo.fuente === 'guante' ? 'Señas: ' : 'Voz: '}
           </Text>
           {previo.texto}
         </Text>

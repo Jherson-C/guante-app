@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrenar señas</title>
+<style>
+  :root { --fondo:#0b1118; --panel:#141c26; --borde:#24303d; --texto:#edf3fa; --suave:#8fa1b3;
+          --acento:#4fc3f7; --ok:#66d19e; --peligro:#ff7a7a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.45 system-ui, sans-serif; background:var(--fondo); color:var(--texto); }
+  main { max-width:720px; margin:0 auto; padding:16px; display:grid; gap:14px; }
+  h1 { font-size:1.3rem; margin:4px 0; }
+  h2 { font-size:.8rem; letter-spacing:.08em; text-transform:uppercase; color:var(--suave); margin:0 0 10px; }
+  section { background:var(--panel); border:1px solid var(--borde); border-radius:14px; padding:14px; }
+  .ahora { font-size:2.6rem; font-weight:700; min-height:3.2rem; color:var(--acento); }
+  .sub { color:var(--suave); font-size:.9rem; }
+  .manos { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .dedo { display:grid; grid-template-columns:4.5rem 1fr 2.6rem; align-items:center; gap:6px; font-size:.85rem; }
+  .barra { height:10px; background:var(--borde); border-radius:5px; overflow:hidden; }
+  .barra i { display:block; height:100%; background:var(--acento); width:0; transition:width .15s; }
+  input, button { font:inherit; border-radius:10px; border:1px solid var(--borde); padding:10px 12px; }
+  input { width:100%; background:var(--fondo); color:var(--texto); }
+  button { background:var(--borde); color:var(--texto); cursor:pointer; }
+  button.primario { background:var(--acento); color:#04121c; border:0; font-weight:700; }
+  button:disabled { opacity:.5; cursor:default; }
+  .fila { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+  .chip { padding:6px 10px; font-size:.9rem; }
+  details { border-top:1px solid var(--borde); padding:8px 0; }
+  summary { cursor:pointer; font-weight:600; }
+  #chips { display:block; }
+  .cuenta { font-size:2rem; font-weight:700; text-align:center; min-height:2.6rem; }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:7px 4px; border-top:1px solid var(--borde); }
+  td:last-child { text-align:right; }
+  .pocas { color:var(--peligro); }
+  @media (max-width:520px) { .manos { grid-template-columns:1fr; } }
+  /* La cámara siempre a la vista mientras se tocan los botones: arriba fija en pantallas angostas, al costado en anchas. */
+  #vistaCamara { position:sticky; top:0; z-index:2; }
+  #vistaCamara img { max-height:38vh; object-fit:contain; }
+  @media (min-width:1100px) {
+    body:has(#vistaCamara:not([hidden])) { padding-right:calc(min(44vw, 640px) + 32px); }
+    #vistaCamara { position:fixed; top:16px; right:16px; width:min(44vw, 640px); max-height:calc(100vh - 32px); overflow:auto; }
+    #vistaCamara img { max-height:none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Entrenar señas</h1>
+
+  <section aria-live="polite">
+    <h2>Ahora reconozco</h2>
+    <div class="ahora" id="ahora">—</div>
+    <div class="sub">Última seña: <b id="ultima">—</b></div>
+    <div class="sub">Frase armada (va al teléfono tras una pausa): <b id="frase">—</b></div>
+    <div class="sub" id="aviso"></div>
+  </section>
+
+  <section id="vistaCamara">
+    <h2>Cámara</h2>
+    <img id="camara" alt="Lo que ve la cámara, con las manos marcadas" style="width:100%; border-radius:10px; display:block">
+    <div class="fila" style="justify-content:space-between; align-items:baseline">
+      <div class="ahora" id="ahoraCam" aria-live="polite" title="Lo que está viendo ahora">—</div>
+      <button id="limpiar" class="chip">Limpiar</button>
+    </div>
+    <div id="detectadas" aria-live="polite" style="font-size:1.5rem; font-weight:600; min-height:2rem; word-break:break-word"></div>
+    <p class="sub">Si las rayas siguen bien tus dedos, la cámara te ve bien. Verde: mano derecha · naranja: izquierda.
+      Se ve como un espejo.</p>
+  </section>
+
+  <section>
+    <h2>1. Calibrar (cada vez que cambia la persona)</h2>
+    <p class="sub">Pon la mano frente a la cámara (que salga marcada), toca «Mano abierta» y sostenla 2 s; después «Puño».</p>
+    <div class="manos" id="calibrar"></div>
+    <div class="cuenta" id="cuentaCal" aria-live="assertive"></div>
+  </section>
+
+  <section>
+    <h2>2. Grabar</h2>
+    <label class="sub" for="nombres">Señas, separadas por coma</label>
+    <input id="nombres" placeholder="REPOSO, A, E, I, O, U, BUENOS DIAS" autocomplete="off">
+    <p class="sub">Elige de los grupos o escribe cualquier seña nueva. Sin signos: «COMO ESTAS» se muestra como «¿Cómo estás?».</p>
+    <div class="fila" id="chips"></div>
+    <div class="fila">
+      <label class="sub"><input type="checkbox" id="mov" style="width:auto"> Tienen movimiento</label>
+    </div>
+    <div class="fila">
+      <label class="sub" for="vueltas">Vueltas</label>
+      <input id="vueltas" type="number" min="1" max="10" value="3" style="width:5rem">
+      <button class="primario" id="grabar">Grabar</button>
+      <button id="cancelar" disabled>Cancelar</button>
+    </div>
+    <div class="cuenta" id="cuenta" aria-live="assertive"></div>
+    <figure id="guia" hidden style="margin:0 auto; text-align:center">
+      <img id="guiaImg" alt="" style="max-height:220px; background:#fff; border-radius:10px">
+      <figcaption class="sub">Así se hace (Guía de Lengua de Señas Peruana, MINEDU 2015)</figcaption>
+    </figure>
+    <p class="sub">Graba <b>REPOSO</b> primero (manos sueltas, sin firmar). Cada seña 3 vueltas.
+      Después haz la seña y mira arriba si la reconoce; si falla, grábala otra vez.</p>
+    <p class="sub">Señas con movimiento: marca «Tienen movimiento» y hazla completa durante los 2 s
+      (J, Ñ y Z ya se marcan solas).</p>
+    <p class="sub"><b>TRANSICION</b>: grábala al final, 5 vueltas, pasando rápido de una seña a otra de las que ya
+      grabaste, sin parar. Así aprende que esos movimientos no son señas. Como REPOSO, nunca se escribe.</p>
+  </section>
+
+  <section>
+    <h2>3. Frases recordadas</h2>
+    <p class="sub">Cada combinación de señas que Qwen arma se recuerda: la próxima vez sale al instante.
+      Ensaya la presentación y corrige aquí lo que haya salido mal.</p>
+    <table><tbody id="frases"></tbody></table>
+    <div class="fila">
+      <input id="nuevaClave" placeholder="Señas: YO QUERER AGUA" style="flex:1;min-width:10rem">
+      <input id="nuevoTexto" placeholder="Frase: Quiero agua." style="flex:1;min-width:10rem">
+      <button id="agregarFrase">Agregar</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dedos en vivo</h2>
+    <div class="manos" id="manos"></div>
+  </section>
+
+  <section>
+    <h2>Señas grabadas</h2>
+    <table><tbody id="lista"></tbody></table>
+    <p class="sub" id="vacia">Todavía no hay señas.</p>
+    <div class="fila"><a href="/datos.csv" download><button>Descargar copia de las señas</button></a></div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+// Cámara de la PC: «cerebro.py camara-pc» la sirve en el puerto 8002 de la misma PC. Desde otro aparato no existe y se oculta.
+const camara = $('camara');
+camara.onload = () => { $('vistaCamara').hidden = false; };
+camara.onerror = () => {
+  $('vistaCamara').hidden = true;
+  setTimeout(() => { camara.src = 'http://localhost:8002/video?' + Date.now(); }, 3000);
+};
+camara.src = 'http://localhost:8002/video';
+const DEDOS = ['Pulgar', 'Índice', 'Medio', 'Anular', 'Meñique'];
+// Las frases son las del catálogo de la app (src/domain/frases.ts): sin signos, la app les pone ¿? y tildes.
+const GRUPOS = {
+  'Básicas': ['REPOSO', 'TRANSICION', 'ESPACIO', 'BORRAR'],
+  // Lo mínimo para conversar sin acelerómetro: cada seña es una frase entera,
+  // así no hay que deletrear y basta con la forma de los dedos.
+  'Conversación básica': ['HOLA', 'COMO ESTAS', 'ESTOY BIEN GRACIAS', 'GUSTO EN CONOCERTE', 'SI', 'NO',
+    'GRACIAS', 'POR FAVOR', 'NO ENTIENDO', 'PUEDES REPETIR', 'UN MOMENTO POR FAVOR', 'NECESITO AYUDA', 'ADIOS'],
+  'Abecedario': 'A B C D E F G H I J K L M N Ñ O P Q R S T U V W X Y Z'.split(' '),
+  'Saludos': ['HOLA', 'BUENOS DIAS', 'BUENAS TARDES', 'BUENAS NOCHES', 'COMO ESTAS', 'QUE TAL', 'GUSTO EN CONOCERTE'],
+  'Preguntas': ['ESTAS BIEN', 'NECESITAS AYUDA', 'PUEDES REPETIR', 'QUE HORA ES', 'DONDE ESTA EL BAÑO', 'ME ENTIENDES', 'TIENES HAMBRE'],
+  'Respuestas': ['SI', 'NO', 'ESTOY BIEN', 'ESTOY BIEN GRACIAS', 'NO ENTIENDO', 'UN MOMENTO POR FAVOR', 'TENGO UNA PREGUNTA'],
+  'Cortesía': ['GRACIAS', 'POR FAVOR', 'PERDON', 'DE NADA'],
+  'Ayuda': ['NECESITO AYUDA', 'LLAMEN A UN MEDICO', 'ESTOY PERDIDO', 'TENGO DOLOR', 'NO PUEDO HABLAR'],
+  'Despedidas': ['ADIOS', 'HASTA LUEGO', 'NOS VEMOS', 'HASTA MAÑANA'],
+  'Palabras': ['YO', 'TU', 'QUERER', 'AGUA', 'COMER', 'BAÑO', 'CASA', 'ESCUELA', 'TRABAJO', 'FAMILIA', 'AMIGO', 'BIEN', 'MAL', 'HOY', 'MAÑANA'],
+};
+const CON_MOVIMIENTO = new Set(['J', 'Ñ', 'Z']);  // letras de la LSP que se hacen moviendo la mano
+let grabadas = {};
+let cancelado = false;
+
+// Barras de las dos manos
+for (const [mano, titulo] of [['D', 'Derecha'], ['I', 'Izquierda']]) {
+  const caja = document.createElement('div');
+  caja.innerHTML = `<div class="sub" style="margin-bottom:6px">${titulo} <span id="ori${mano}"></span></div>` +
+    DEDOS.map((d, i) => `<div class="dedo"><span>${d}</span><div class="barra"><i id="b${mano}${i}"></i></div><span id="v${mano}${i}">0</span></div>`).join('');
+  $('manos').append(caja);
+}
+// Calibración: la placa mide 2 s la mano abierta y después 2 s el puño, y lo guarda
+for (const [mano, titulo] of [['D', 'Derecha'], ['I', 'Izquierda']]) {
+  const caja = document.createElement('div');
+  caja.innerHTML = `<div class="sub">${titulo}: <b id="con${mano}">—</b></div>
+    <div class="fila"><button data-paso="CAL_OPEN">Mano abierta</button><button data-paso="CAL_FIST">Puño</button></div>`;
+  for (const b of caja.querySelectorAll('button')) {
+    b.onclick = async () => {
+      const abierta = b.dataset.paso === 'CAL_OPEN';
+      try {
+        $('cuentaCal').textContent = abierta ? 'Mantén la mano ABIERTA…' : 'Mantén el PUÑO cerrado…';
+        await pedir(`/calibrar?mano=${mano}&paso=${b.dataset.paso}`, { method: 'POST' });  // tarda 2 s
+        $('cuentaCal').textContent = abierta ? 'Listo. Ahora toca «Puño».' : 'Calibrado ✓';
+      } catch (err) {
+        $('cuentaCal').textContent = 'Error: ' + err.message;
+      }
+    };
+  }
+  $('calibrar').append(caja);
+}
+function agregar(nombres) {
+  const actuales = $('nombres').value.split(',').map(t => t.trim()).filter(Boolean);
+  $('nombres').value = [...actuales, ...nombres.filter(n => !actuales.includes(n))].join(', ');
+}
+for (const [grupo, nombres] of Object.entries(GRUPOS)) {
+  const det = document.createElement('details');
+  const todo = document.createElement('button');
+  todo.className = 'chip'; todo.textContent = 'Agregar las que faltan';
+  todo.onclick = () => agregar(nombres.filter(n => !grabadas[n]));
+  det.innerHTML = `<summary>${grupo} <span class="sub" data-grupo="${grupo}"></span></summary>`;
+  const fila = document.createElement('div');
+  fila.className = 'fila';
+  fila.append(todo, ...nombres.map((n) => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = n; b.dataset.nombre = n;
+    b.onclick = () => agregar([n]);
+    return b;
+  }));
+  det.append(fila);
+  $('chips').append(det);
+}
+// Marca con ✓ las ya grabadas y cuenta cuántas lleva cada grupo
+function marcarGrabadas() {
+  for (const b of document.querySelectorAll('[data-nombre]')) {
+    b.textContent = (grabadas[b.dataset.nombre] ? '✓ ' : '') + b.dataset.nombre;
+  }
+  for (const [grupo, nombres] of Object.entries(GRUPOS)) {
+    document.querySelector(`[data-grupo="${grupo}"]`).textContent =
+      `· ${nombres.filter(n => grabadas[n]).length}/${nombres.length}`;
+  }
+}
+
+async function pedir(ruta, opciones) {
+  const r = await fetch(ruta, opciones);
+  const datos = await r.json();
+  if (!r.ok) throw new Error(datos.error || r.status);
+  return datos;
+}
+
+function pintarLista(senas) {
+  grabadas = senas;
+  marcarGrabadas();
+  const nombres = Object.keys(senas).sort();
+  $('vacia').hidden = nombres.length > 0;
+  $('lista').replaceChildren(...nombres.map((n) => {
+    const tr = document.createElement('tr');
+    const tomas = senas[n];
+    tr.innerHTML = `<td><b></b></td><td class="${tomas < 3 ? 'pocas' : ''}">${tomas} toma${tomas === 1 ? '' : 's'}</td><td><button>Borrar</button></td>`;
+    tr.querySelector('b').textContent = n;
+    tr.querySelector('button').onclick = async () => {
+      if (!confirm(`¿Borrar todas las tomas de ${n}?`)) return;
+      pintarLista((await pedir('/borrar?nombre=' + encodeURIComponent(n), { method: 'POST' })).senas);
+    };
+    return tr;
+  }));
+}
+
+function pintarFrases(frases) {
+  $('frases').replaceChildren(...Object.entries(frases).sort().map(([clave, texto]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="sub"></td><td><input></td><td><button>Guardar</button> <button>Borrar</button></td>`;
+    tr.cells[0].textContent = clave;
+    const campo = tr.querySelector('input');
+    campo.value = texto;
+    const [guardar, borrar] = tr.querySelectorAll('button');
+    guardar.onclick = () => guardarFrase(clave, campo.value);
+    borrar.onclick = () => guardarFrase(clave, '');
+    return tr;
+  }));
+}
+async function guardarFrase(clave, texto) {
+  try {
+    pintarFrases(await pedir(`/frase?clave=${encodeURIComponent(clave)}&texto=${encodeURIComponent(texto)}`, { method: 'POST' }));
+  } catch (err) { alert(err.message); }
+}
+$('agregarFrase').onclick = async () => {
+  await guardarFrase($('nuevaClave').value, $('nuevoTexto').value);
+  $('nuevaClave').value = ''; $('nuevoTexto').value = '';
+};
+// «Limpiar» recuerda cuántas señas iban (la placa cuenta todas y guarda las últimas 20).
+let limpioEn = 0, ultimoTotal = 0;
+$('limpiar').onclick = () => { limpioEn = ultimoTotal; $('detectadas').textContent = ''; };
+let fraseVista;
+async function actualizar() {
+  try {
+    const e = await pedir('/estado');
+    $('ahora').textContent = e.ahora || '—';
+    $('ultima').textContent = e.ultima || '—';
+    $('ahoraCam').textContent = e.ahora && !['REPOSO', 'TRANSICION'].includes(e.ahora) ? e.ahora : '—';
+    // Lo reconocido como texto: letras seguidas forman palabra (H O L A -> HOLA), las palabras van separadas.
+    ultimoTotal = e.total;
+    const nuevas = e.emitidas.slice(e.emitidas.length - Math.min(e.emitidas.length, e.total - limpioEn));
+    $('detectadas').textContent = nuevas.reduce((txt, s, i) =>
+      txt + (i && (s.length > 1 || nuevas[i - 1].length > 1) ? ' ' : '') + s, '');
+    $('frase').textContent = e.frase || '—';
+    if (e.frase !== fraseVista) {  // se armó una frase nueva: refrescar la lista (no en cada vuelta, para no pisar lo que se edita)
+      fraseVista = e.frase;
+      pintarFrases(await pedir('/frases'));
+    }
+    for (const mano of ['D', 'I']) {
+      const v = e.sensores[mano];
+      $('con' + mano).textContent = e.vistas.includes(mano) ? 'la cámara la ve' : 'no se ve';
+      v.slice(0, 5).forEach((x, i) => { $(`b${mano}${i}`).style.width = x + '%'; $(`v${mano}${i}`).textContent = Math.round(x); });
+      $('ori' + mano).textContent = `· giro ${Math.round(v[5])}° · incl. ${Math.round(v[6])}° · pulgar-índice ${Math.round(v[8])} · índice-medio ${Math.round(v[9])}`;
+    }
+    $('aviso').textContent = e.vistas.length ? '' : 'La cámara no ve ninguna mano.';
+    pintarLista(e.senas);
+  } catch {
+    $('aviso').textContent = 'Sin conexión con la placa.';
+  }
+}
+setInterval(actualizar, 300);
+actualizar();
+
+const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+$('grabar').onclick = async () => {
+  const nombres = $('nombres').value.split(',').map(t => t.trim()).filter(Boolean);
+  const vueltas = Math.max(1, Math.min(10, Number($('vueltas').value) || 3));
+  if (!nombres.length) { $('cuenta').textContent = 'Escribe o elige una seña'; return; }
+  cancelado = false;
+  $('grabar').disabled = true; $('cancelar').disabled = false;
+  try {
+    for (let v = 1; v <= vueltas && !cancelado; v++) {
+      for (const n of nombres) {
+        for (let s = 3; s > 0 && !cancelado; s--) {
+          $('cuenta').textContent = `Prepara ${n} (vuelta ${v}/${vueltas})… ${s}`;
+          mostrarGuia(n);
+          await esperar(1000);
+        }
+        if (cancelado) break;
+        const mov = $('mov').checked || CON_MOVIMIENTO.has(n);
+        $('cuenta').textContent = mov ? `¡Haz ${n} ahora, con el movimiento completo!` : `¡Mantén ${n}!`;
+        pintarLista((await pedir(`/grabar?nombre=${encodeURIComponent(n)}&mov=${mov ? 1 : 0}`, { method: 'POST' })).senas);
+      }
+    }
+    $('cuenta').textContent = cancelado ? 'Cancelado' : 'Listo ✓ Ahora prueba las señas';
+  } catch (err) {
+    $('cuenta').textContent = 'Error: ' + err.message;
+  } finally {
+    mostrarGuia(null);
+    $('grabar').disabled = false; $('cancelar').disabled = true;
+  }
+};
+$('cancelar').onclick = () => { cancelado = true; };
+// Dibujo de la letra mientras se graba (las palabras no tienen dibujo).
+function mostrarGuia(n) {
+  const letra = n && /^[A-ZÑ]$/.test(n);
+  $('guia').hidden = !letra;
+  if (letra) { $('guiaImg').src = `/abecedario/${encodeURIComponent(n)}.png`; $('guiaImg').alt = `Letra ${n} en LSP`; }
+}
+</script>
+</body>
+</html>
