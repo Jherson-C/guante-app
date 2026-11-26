@@ -1,5 +1,5 @@
 /**
- * Fondo vivo: dos resplandores (cian y ámbar) hechos con gradientes radiales.
+ * Fondo vivo: grilla de puntos y dos resplandores (amarillo y acero) hechos con gradientes radiales.
  * El de quien tiene la palabra se enciende y el otro se apaga, así el color de
  * toda la pantalla dice quién está "hablando" sin leer nada.
  */
@@ -13,7 +13,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { COLOR } from '@/constants/tema';
 import type { Fuente } from '@/constants/tema';
@@ -52,6 +52,20 @@ function Resplandor({
   );
 }
 
+/** Grilla de puntos tenues, como el fondo de la página de Tinkuy. */
+function Puntos() {
+  return (
+    <Svg width="100%" height="100%">
+      <Defs>
+        <Pattern id="puntos" width={22} height={22} patternUnits="userSpaceOnUse">
+          <Circle cx={11} cy={11} r={1.1} fill={COLOR.punto} />
+        </Pattern>
+      </Defs>
+      <Rect width="100%" height="100%" fill="url(#puntos)" />
+    </Svg>
+  );
+}
+
 export function Fondo({ activo }: Props) {
   const reducir = useReducedMotion();
   const guante = useSharedValue(REPOSO);
@@ -75,6 +89,9 @@ export function Fondo({ activo }: Props) {
 
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.base]}>
+      <View style={StyleSheet.absoluteFill}>
+        <Puntos />
+      </View>
       <Animated.View style={[StyleSheet.absoluteFill, estiloGuante]}>
         <Resplandor id="g-guante" color={COLOR.guante} cx="8%" cy="6%" />
       </Animated.View>

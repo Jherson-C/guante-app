@@ -30,7 +30,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimadoPressable, useRebote } from '@/components/controles';
 import { Cristal } from '@/components/cristal';
 import { Fondo } from '@/components/fondo';
-import { Icono } from '@/components/icono';
+import { LogoTinkuy } from '@/components/logo-tinkuy';
 import { NOMBRES_DISPOSITIVO } from '@/ble/protocol';
 import type { IdDispositivo } from '@/ble/protocol';
 import { COLORES_FASE, ETIQUETAS_CORTAS, ETIQUETAS_FASE } from '@/constants/guante-fases';
@@ -117,7 +117,7 @@ function Orbita({ tamano, buscando, listo }: { tamano: number; buscando: boolean
           tinte={`${color}66`}
           style={[styles.nucleo, { width: nucleo, height: nucleo, borderRadius: nucleo * 0.3 }]}
         >
-          <Icono nombre="mano" tamano={Math.round(nucleo * 0.5)} color={color} grosor={1.8} />
+          <LogoTinkuy tamano={Math.round(nucleo * 0.72)} />
         </Cristal>
       </View>
     </View>
@@ -263,6 +263,10 @@ export default function Conexion() {
           </View>
 
           <View style={[styles.texto, horizontal && styles.textoHorizontal, compacto && styles.textoCompacto]}>
+            <View style={styles.marca} accessible accessibilityRole="header" accessibilityLabel="Tinkuy">
+              <LogoTinkuy tamano={compacto ? 22 : 26} />
+              <Text style={styles.marcaTexto}>Tinkuy</Text>
+            </View>
             <Text style={[styles.titulo, { fontSize: compacto ? 26 : horizontal ? 32 : 38 }]}>
               {activo ? 'Placa lista' : 'Conecta la placa'}
             </Text>
@@ -411,10 +415,28 @@ const styles = StyleSheet.create({
   textoCompacto: {
     gap: 8,
   },
+  marca: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 5,
+    paddingLeft: 8,
+    paddingRight: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLOR.borde,
+    backgroundColor: COLOR.capa,
+  },
+  marcaTexto: {
+    fontFamily: FUENTE.negrita,
+    fontSize: 14,
+    color: COLOR.texto,
+    letterSpacing: 0.4,
+  },
   titulo: {
     fontFamily: FUENTE.display,
     color: COLOR.texto,
-    letterSpacing: -1.2,
+    letterSpacing: -1.4,
   },
   bajada: {
     fontFamily: FUENTE.normal,
@@ -436,12 +458,12 @@ const styles = StyleSheet.create({
     fontFamily: FUENTE.normal,
     fontSize: 13,
     lineHeight: 19,
-    color: COLOR.voz,
+    color: COLOR.aviso,
   },
   simulado: {
     fontFamily: FUENTE.negrita,
     fontSize: 12,
-    color: COLOR.voz,
+    color: COLOR.aviso,
   },
   acciones: {
     alignSelf: 'stretch',
@@ -468,7 +490,7 @@ const styles = StyleSheet.create({
   primarioTexto: {
     fontFamily: FUENTE.display,
     fontSize: 19,
-    color: '#04222A',
+    color: COLOR.sobreGuante,
     letterSpacing: -0.2,
   },
   dispositivos: {

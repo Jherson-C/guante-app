@@ -16,7 +16,7 @@ const TONOS: Record<Tono, { color: string; suave: string; borde: string }> = {
   neutro: { color: COLOR.suave, suave: 'rgba(255,255,255,0.08)', borde: COLOR.borde },
   guante: { color: COLOR.guante, suave: COLOR.guanteSuave, borde: COLOR.guanteBorde },
   voz: { color: COLOR.voz, suave: COLOR.vozSuave, borde: COLOR.vozBorde },
-  coral: { color: COLOR.coral, suave: COLOR.coralSuave, borde: 'rgba(255,93,93,0.4)' },
+  coral: { color: COLOR.coral, suave: COLOR.coralSuave, borde: COLOR.coralBorde },
 };
 
 export const AnimadoPressable = Animated.createAnimatedComponent(Pressable);

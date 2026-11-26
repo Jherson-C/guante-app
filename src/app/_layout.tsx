@@ -1,9 +1,9 @@
 import {
-  BricolageGrotesque_500Medium,
-  BricolageGrotesque_700Bold,
-  BricolageGrotesque_800ExtraBold,
+  SchibstedGrotesk_500Medium,
+  SchibstedGrotesk_700Bold,
+  SchibstedGrotesk_800ExtraBold,
   useFonts,
-} from '@expo-google-fonts/bricolage-grotesque';
+} from '@expo-google-fonts/schibsted-grotesk';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -16,9 +16,9 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fuentesListas, errorFuentes] = useFonts({
-    BricolageGrotesque_500Medium,
-    BricolageGrotesque_700Bold,
-    BricolageGrotesque_800ExtraBold,
+    SchibstedGrotesk_500Medium,
+    SchibstedGrotesk_700Bold,
+    SchibstedGrotesk_800ExtraBold,
   });
 
   // Si la fuente falla, la app sigue con la del sistema en vez de quedarse en blanco.

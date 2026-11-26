@@ -21,6 +21,7 @@ import Animated, {
 
 import { Cristal } from '@/components/cristal';
 import { Icono } from '@/components/icono';
+import { LogoTinkuy } from '@/components/logo-tinkuy';
 import { ACENTO, COLOR, FUENTE } from '@/constants/tema';
 import type { Fuente } from '@/constants/tema';
 
@@ -81,7 +82,7 @@ export function PantallaGrande({ actual, previo }: Props) {
     return (
       <Animated.View entering={FadeIn.duration(500)} style={styles.vacio}>
         <View style={styles.vacioIconos}>
-          <Icono nombre="mano" tamano={30} color={COLOR.guante} />
+          <LogoTinkuy tamano={40} />
           <View style={styles.vacioLinea} />
           <Icono nombre="mic" tamano={30} color={COLOR.voz} />
         </View>

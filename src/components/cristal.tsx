@@ -51,7 +51,7 @@ export function Cristal({ style, tinte, fuerte, children }: PropsWithChildren<Pr
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 22,
+    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth * 2,
     borderColor: COLOR.borde,
     overflow: 'hidden',

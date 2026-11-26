@@ -5,6 +5,8 @@
 
 import Svg, { Path, Rect } from 'react-native-svg';
 
+import { COLOR } from '@/constants/tema';
+
 export type NombreIcono =
   | 'atras'
   | 'mic'
@@ -53,7 +55,7 @@ interface Props {
   grosor?: number;
 }
 
-export function Icono({ nombre, tamano = 22, color = '#EDF3FA', grosor = 2 }: Props) {
+export function Icono({ nombre, tamano = 22, color = COLOR.texto, grosor = 2 }: Props) {
   return (
     <Svg
       width={tamano}

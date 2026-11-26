@@ -1,35 +1,41 @@
 /**
- * Sistema visual de la app. Dos voces, dos colores:
- *   cian  → lo que firma el guante
- *   ámbar → lo que dice la voz
- * Todo lo demás (superficies, texto) es neutro para que el color siempre
+ * Sistema visual de Tinkuy (misma paleta grafito + amarillo que guante-nexa.netlify.app).
+ * Dos voces, dos colores:
+ *   amarillo → lo que firma la persona sorda (los puntos de la mano del logo)
+ *   acero azul → lo que dice la voz del oyente
+ * Todo lo demás (superficies grafito, texto) es neutro para que el color siempre
  * signifique "quién habla".
  */
 
 export const COLOR = {
-  abismo: '#060A11',
-  capa: 'rgba(16, 26, 42, 0.62)',
-  capaFuerte: 'rgba(20, 32, 52, 0.88)',
-  borde: 'rgba(170, 205, 255, 0.14)',
-  brillo: 'rgba(255, 255, 255, 0.16)',
-  texto: '#EDF3FA',
-  suave: '#9AA9BD',
-  tenue: '#66768C',
-  guante: '#29D9F2',
-  guanteSuave: 'rgba(41, 217, 242, 0.14)',
-  guanteBorde: 'rgba(41, 217, 242, 0.42)',
-  voz: '#FFB54A',
-  vozSuave: 'rgba(255, 181, 74, 0.14)',
-  vozBorde: 'rgba(255, 181, 74, 0.42)',
-  coral: '#FF5D5D',
-  coralSuave: 'rgba(255, 93, 93, 0.16)',
-  verde: '#2FD08F',
+  abismo: '#0F1012',
+  capa: 'rgba(24, 25, 28, 0.72)',
+  capaFuerte: 'rgba(24, 25, 28, 0.94)',
+  borde: 'rgba(255, 255, 255, 0.09)',
+  brillo: 'rgba(255, 255, 255, 0.22)',
+  punto: 'rgba(255, 255, 255, 0.07)',
+  hueso: '#8A8F99',
+  texto: '#ECEEF1',
+  suave: '#9EA4AE',
+  tenue: '#6E747E',
+  guante: '#F5B800',
+  guanteSuave: 'rgba(245, 184, 0, 0.13)',
+  guanteBorde: 'rgba(245, 184, 0, 0.45)',
+  sobreGuante: '#17191D',
+  voz: '#9DB2D6',
+  vozSuave: 'rgba(157, 178, 214, 0.14)',
+  vozBorde: 'rgba(157, 178, 214, 0.45)',
+  aviso: '#FFB067',
+  coral: '#FF6B5E',
+  coralSuave: 'rgba(255, 107, 94, 0.16)',
+  coralBorde: 'rgba(255, 107, 94, 0.4)',
+  verde: '#3DD68C',
 } as const;
 
 export const FUENTE = {
-  normal: 'BricolageGrotesque_500Medium',
-  negrita: 'BricolageGrotesque_700Bold',
-  display: 'BricolageGrotesque_800ExtraBold',
+  normal: 'SchibstedGrotesk_500Medium',
+  negrita: 'SchibstedGrotesk_700Bold',
+  display: 'SchibstedGrotesk_800ExtraBold',
 } as const;
 
 export type Fuente = 'guante' | 'voz';

@@ -5,6 +5,7 @@
  */
 
 import type { ConnectionPhase } from '@/ble/guante';
+import { COLOR } from '@/constants/tema';
 
 export const ETIQUETAS_FASE: Record<ConnectionPhase, string> = {
   inicial: 'Sin conectar',
@@ -39,16 +40,16 @@ export const ETIQUETAS_CORTAS: Record<ConnectionPhase, string> = {
 
 /** Colores semánticos asociados a cada fase (apoyo visual, no único canal). */
 export const COLORES_FASE: Record<ConnectionPhase, string> = {
-  inicial: '#8a8a8a',
-  verificando: '#c9b458',
-  'bt-apagado': '#e05a4e',
-  'ble-no-disponible': '#e0b34e',
-  'permiso-denegado': '#e05a4e',
-  escaneando: '#c9b458',
-  'no-encontrado': '#e05a4e',
-  conectando: '#c9b458',
-  conectado: '#c9b458',
-  operativo: '#4caf7d',
-  reconectando: '#e08b4e',
-  desconectado: '#e05a4e',
+  inicial: COLOR.tenue,
+  verificando: COLOR.guante,
+  'bt-apagado': COLOR.coral,
+  'ble-no-disponible': COLOR.aviso,
+  'permiso-denegado': COLOR.coral,
+  escaneando: COLOR.guante,
+  'no-encontrado': COLOR.coral,
+  conectando: COLOR.guante,
+  conectado: COLOR.guante,
+  operativo: COLOR.verde,
+  reconectando: COLOR.aviso,
+  desconectado: COLOR.coral,
 };

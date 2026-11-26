@@ -44,7 +44,7 @@ export default function Conversacion() {
     inyectarLinea,
   } = useGuante();
 
-  const { hablar, detener: detenerVoz, hablando } = useTextoAVoz();
+  const { hablar, preparar, detener: detenerVoz, hablando } = useTextoAVoz();
   // Lo firmado se lee en voz alta por defecto: es la forma en que el oyente "escucha" al sordo.
   const [autoVoz, setAutoVoz] = useState(true);
 
@@ -71,6 +71,14 @@ export default function Conversacion() {
       if (autoVoz) hablar(cerrado);
     },
   });
+
+  // El turno se cierra (y se lee) tras 2 s sin señas nuevas. Apenas lo firmado se
+  // queda quieto, se pide la voz a Fish (~1.5 s): al cerrarse el turno ya está lista.
+  useEffect(() => {
+    if (!autoVoz || !guanteVivo) return;
+    const timer = setTimeout(() => preparar(guanteVivo), 500);
+    return () => clearTimeout(timer);
+  }, [guanteVivo, autoVoz, preparar]);
 
   useEffect(() => {
     agregarVozRef.current = agregarVoz;
@@ -236,7 +244,7 @@ export default function Conversacion() {
                 </Cristal>
               ) : null}
               {errorVoz ? (
-                <Cristal tinte={'rgba(255,93,93,0.4)'} style={styles.aviso}>
+                <Cristal tinte={COLOR.coralBorde} style={styles.aviso}>
                   <Text style={[styles.avisoTexto, { color: COLOR.coral }]} numberOfLines={1}>
                     {errorVoz}
                   </Text>
